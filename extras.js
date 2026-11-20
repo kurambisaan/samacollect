@@ -75,6 +75,86 @@ async function admin() {
     </div>`;
 }
 
+
+// ---------- Détecteur IA : verdict adapté aux textes longs (mémoires, rapports) ----------
+const STYLE_MARKERS = ['il est important de noter', 'il convient de noter', 'il est essentiel', 'en conclusion', 'en somme', 'en résumé', 'en définitive',
+  'joue un rôle crucial', 'joue un rôle clé', 'rôle essentiel', 'un enjeu majeur', 'force est de constater', 'dans un monde', 'à l’ère', "à l'ère",
+  'par ailleurs', 'en outre', 'de plus,', 'tout d’abord', "tout d'abord", 'ainsi,', 'néanmoins', 'il est crucial', 'permet de favoriser', 'contribue à',
+  'furthermore', 'moreover', 'in conclusion', 'it is important to note', 'plays a crucial role', 'delve', 'additionally', 'overall,', 'in summary'];
+const WORD_RE = /[\p{L}’'-]+/gu;
+function textSignals(t) {
+  const s = String(t || '').trim(), low = s.toLowerCase();
+  const words = low.match(WORD_RE) || [];
+  const sentences = s.split(/(?<=[.!?…])\s+/).filter(x => (x.match(WORD_RE) || []).length > 0);
+  const lens = sentences.map(x => (x.match(WORD_RE) || []).length);
+  const mean = lens.reduce((a, b) => a + b, 0) / (lens.length || 1);
+  const cv = lens.length >= 3 ? Math.sqrt(lens.reduce((a, b) => a + (b - mean) ** 2, 0) / lens.length) / (mean || 1) : null;
+  const markers = STYLE_MARKERS.filter(m => low.includes(m));
+  const ttr = words.length ? new Set(words).size / words.length : 0;
+  const signals = []; let score = 0;
+  const add = (pts, label) => { score += pts; signals.push(label); };
+  if (words.length >= 30) {
+    if (markers.length) add(Math.min(36, markers.length * 12), `connecteurs et formules types : ${markers.slice(0, 4).join(', ')}`);
+    if (cv !== null && cv < 0.35) add(18, 'phrases de longueur très régulière');
+    if (mean > 22) add(10, 'phrases longues et denses');
+    if (/[—–]/.test(s)) add(8, 'tirets longs');
+    if (/^\s*([-•*]|\d+[.)])\s/m.test(s)) add(10, 'mise en forme en liste');
+    if (/^[A-ZÀ-Ý«"]/.test(s) && /[.!?…»"]$/.test(s) && !/\s[,.;:!?](?!\s)|[a-zà-ÿ]\.[a-zà-ÿ]/.test(s)) add(8, 'typographie impeccable');
+    if (words.length >= 80 && ttr > 0.62) add(10, 'vocabulaire très varié');
+  }
+  return { score: Math.min(100, score), signals, words: words.length, sentences: sentences.length, mean, ttr };
+}
+
+function blocksOf(text) {
+  let paras = text.split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g, ' ').trim()).filter(p => (p.match(WORD_RE) || []).length >= 30);
+  const words = (text.match(WORD_RE) || []).length;
+  if (paras.length < 2 && words > 300) {           // texte collé sans sauts de ligne : découpage en blocs d'environ 120 mots
+    const sent = text.replace(/\s+/g, ' ').split(/(?<=[.!?…])\s+/); paras = []; let cur = '';
+    for (const x of sent) { cur += (cur ? ' ' : '') + x; if ((cur.match(WORD_RE) || []).length >= 120) { paras.push(cur); cur = ''; } }
+    if ((cur.match(WORD_RE) || []).length >= 30) paras.push(cur);
+  }
+  return paras;
+}
+function analyseText(text) {
+  const all = textSignals(text);
+  const paras = blocksOf(text).map((p, i) => ({ i: i + 1, p, r: textSignals(p) }));
+  const flagged = paras.filter(x => x.r.score >= 45);
+  const norm = p => p.toLowerCase().replace(/[^\p{L}\d]+/gu, ' ').trim();
+  const seen = new Map(), dups = [];
+  paras.forEach(x => { const k = norm(x.p); if (seen.has(k)) dups.push([seen.get(k), x.i]); else seen.set(k, x.i); });
+  const long = paras.length >= 4;
+  const part = paras.length ? Math.round(flagged.length / paras.length * 100) : 0;
+  const mean = paras.length ? Math.round(paras.reduce((a, x) => a + x.r.score, 0) / paras.length) : all.score;
+  let verdict;
+  if (long) verdict = part >= 50 ? ['Style fortement automatique', 'd'] : part >= 20 ? ['À examiner : au-dessus du seuil', 'w'] : ['Conforme : sous le seuil de 20 %', ''];
+  else verdict = all.score >= 60 ? ['Style fortement automatique', 'd'] : all.score >= 35 ? ['Style partiellement automatique', 'w'] : ['Style humain', ''];
+  return { all, paras, flagged, dups, long, part, mean, verdict };
+}
+function renderVerify(text) {
+  const box = document.getElementById('vres'); if (!box) return;
+  const a = analyseText(text);
+  if (a.all.words < 30) { box.innerHTML = '<div class="note">Il faut au moins 30 mots.</div>'; return; }
+  const kpi = (l, v) => `<div class="kpi"><span class="muted">${l}</span><b>${v}</b></div>`;
+  box.innerHTML = `<div class="kpis">
+      ${a.long ? kpi('Paragraphes signalés', `${a.flagged.length} / ${a.paras.length} (${a.part} %)`) : kpi('Indice de style automatique', `${a.all.score} / 100`)}
+      ${kpi('Seuil de tolérance', '20 %')}
+      ${a.long ? kpi('Indice moyen par paragraphe', `${a.mean} / 100`) : kpi('Paragraphes concernés', a.paras.length ? a.part + ' %' : '–')}
+      <div class="kpi"><span class="muted">Verdict</span><b style="font-size:15px"><span class="chip ${a.verdict[1]}">${a.verdict[0]}</span></b></div></div>
+    ${a.dups.length ? `<div class="note"><b>Paragraphes en double :</b> ${a.dups.map(([x, y]) => `§ ${x} et § ${y}`).join(' ; ')}. Le même texte apparaît plusieurs fois dans le document.</div>` : ''}
+    <div class="card"><h3>Indicateurs</h3>
+      <div class="stats"><div>Mots<b>${nf(a.all.words)}</b></div><div>Paragraphes analysés<b>${a.paras.length}</b></div><div>Mots / phrase<b>${a.all.mean.toLocaleString('fr-FR', { maximumFractionDigits: 1 })}</b></div><div>Richesse lexicale<b>${Math.round(a.all.ttr * 100)} %</b></div></div>
+      ${!a.long ? (a.all.signals.length ? `<ul style="margin:8px 0 0;padding-left:18px">${a.all.signals.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="muted" style="margin:8px 0 0">Aucun indicateur de style automatique.</p>') : ''}</div>
+    ${a.flagged.length ? `<div class="card"><h3>${a.long ? 'Paragraphes à relire' : 'Analyse par paragraphe'} (${a.flagged.length})</h3>${a.flagged.sort((x, y) => y.r.score - x.r.score).map(x => `<div class="q"><div class="row"><b>§ ${x.i}</b><span class="chip ${x.r.score >= 60 ? 'd' : 'w'}">${x.r.score}/100</span></div>
+      <p class="small muted" style="margin:6px 0">${esc(x.r.signals.join(' ; '))}</p><p class="small" style="margin:0">${esc(x.p.slice(0, 320))}${x.p.length > 320 ? '…' : ''}</p></div>`).join('')}</div>`
+      : `<div class="ok">Aucun paragraphe ne présente de style automatique marqué.</div>`}
+    <p class="muted small">L’indice mesure des marqueurs de style ; il oriente l’examen et se complète par un échange avec l’auteur.</p>`;
+}
+document.addEventListener('click', e => {
+  if (location.hash !== '#/verifier' || e.target.id !== 'vgo') return;
+  e.stopPropagation(); e.preventDefault();
+  renderVerify(document.getElementById('vt')?.value || '');
+}, true);
+
 const ROUTES = { '#/confidentialite': privacy, '#/admin': admin };
 function route() { const fn = ROUTES[location.hash]; if (fn) { window.scrollTo(0, 0); fn(); } }
 // Le routeur principal affiche « Page introuvable » pour ces adresses : on prend alors le relais.
