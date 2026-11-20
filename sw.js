@@ -1,1 +1,43 @@
-const e="samacollect-v3",t=["./","./index.html","./app.js","./styles.css","./config.js","./manifest.webmanifest","./icon.svg","./icon-192.png"],n=["cdn.jsdelivr.net","unpkg.com","esm.sh","fonts.googleapis.com","fonts.gstatic.com"];self.addEventListener("install",n=>{n.waitUntil(caches.open(e).then(e=>e.addAll(t)).then(()=>self.skipWaiting()))}),self.addEventListener("activate",t=>{t.waitUntil(caches.keys().then(t=>Promise.all(t.filter(t=>t!==e).map(e=>caches.delete(e)))).then(()=>self.clients.claim()))}),self.addEventListener("fetch",t=>{const s=t.request;if("GET"!==s.method)return;const c=new URL(s.url);c.hostname.endsWith("supabase.co")||c.hostname.endsWith("supabase.in")||(n.some(e=>c.hostname===e)?t.respondWith(caches.match(s).then(t=>t||fetch(s).then(t=>{const n=t.clone();return caches.open(e).then(e=>e.put(s,n)),t}))):c.origin===location.origin&&t.respondWith(fetch(s,{cache:"no-cache"}).then(t=>{const n=t.clone();return caches.open(e).then(e=>e.put(s,n)),t}).catch(()=>caches.match(s).then(e=>e||caches.match("./index.html")))))});
+// SamaCollect — service worker (fonctionnement hors ligne)
+const CACHE = "samacollect-v4";
+// Fichiers chargés par index.html, avec exactement les mêmes adresses (?v inclus)
+const PRECACHE = [
+  "./", "./index.html", "./config.js", "./app.js?v5", "./import.js?v1", "./extras.js?v3",
+  "./styles.css?v4", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png"
+];
+const CDN = ["cdn.jsdelivr.net", "unpkg.com", "esm.sh", "fonts.googleapis.com", "fonts.gstatic.com"];
+
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(CACHE)
+    .then(c => Promise.all(PRECACHE.map(u => c.add(u).catch(() => null))))
+    .then(() => self.skipWaiting()));
+});
+
+self.addEventListener("activate", e => {
+  e.waitUntil(caches.keys()
+    .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+
+self.addEventListener("fetch", e => {
+  const req = e.request;
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
+  if (url.hostname.endsWith("supabase.co") || url.hostname.endsWith("supabase.in")) return;
+  if (CDN.includes(url.hostname)) {
+    // Bibliothèques externes : cache d'abord
+    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => c.put(req, copy));
+      return res;
+    })));
+    return;
+  }
+  if (url.origin === location.origin) {
+    // Fichiers du site : réseau d'abord, cache si hors ligne
+    e.respondWith(fetch(req, { cache: "no-cache" }).then(res => {
+      if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+      return res;
+    }).catch(() => caches.match(req).then(hit => hit || caches.match("./index.html"))));
+  }
+});

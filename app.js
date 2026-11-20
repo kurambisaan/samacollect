@@ -1,1 +1,1432 @@
-const e=window.SAMA_CONFIG||{},t=!(!e.supabaseUrl||!e.supabaseAnonKey),{createClient:n}=t?await(import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm")):await(import("./demo.js")),s=n(e.supabaseUrl,e.supabaseAnonKey),a=!t,i=(e,t=document)=>t.querySelector(e),r=(e,t=document)=>[...t.querySelectorAll(e)],o=i("#app"),l=e=>String(e??"").replace(/[&<>"']/g,e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[e])),c=e=>Number(e).toLocaleString("fr-FR",{maximumFractionDigits:2}),d=e=>e?new Date(e).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"",u=e=>e?new Date(e).toLocaleDateString("fr-FR"):"",p=()=>Math.random().toString(36).slice(2,10),m={get(e,t){try{const n=localStorage.getItem("sama_"+e);return n?JSON.parse(n):t}catch{return t}},set(e,t){try{localStorage.setItem("sama_"+e,JSON.stringify(t))}catch{}}},h=e=>null==e||""===e||Array.isArray(e)&&!e.length,v=()=>location.href.split("#")[0];function g(e){const t=i("#toast");t.textContent=e,t.classList.add("on"),clearTimeout(t._h),t._h=setTimeout(()=>t.classList.remove("on"),3e3)}function f(e,t="Confirmer"){return new Promise(n=>{const s=i("#modal");i("#mmsg").textContent=e,i("#myes").textContent=t,s.classList.add("on"),i("#myes").onclick=()=>{s.classList.remove("on"),n(!0)},i("#mno").onclick=()=>{s.classList.remove("on"),n(!1)}})}async function b(e,t,n="text/csv;charset=utf-8"){if(window.claude?.use)try{const n=await window.claude.use("downloads");if(n)return void await n.save({filename:e,data:t})}catch{return void g("Téléchargement annulé")}const s=URL.createObjectURL(new Blob([t],{type:n})),a=document.createElement("a");a.href=s,a.download=e,document.body.appendChild(a),a.click(),setTimeout(()=>{URL.revokeObjectURL(s),a.remove()},500)}const y=e=>(e||"donnees").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/gi,"_").replace(/^_|_$/g,"").slice(0,50)||"donnees",$=e=>e&&(e.message||e.error_description)||"Erreur inconnue",x={text:"Texte court",long:"Texte long",number:"Nombre",single:"Choix unique",multi:"Choix multiples",yesno:"Oui / Non",rating:"Échelle 1 à 5",date:"Date",gps:"Position GPS",photo:"Photo"},w=e=>["text","long","gps","photo"].includes(e),q=e=>"single"===e||"multi"===e,M=["single","yesno","rating"],L={eq:"est égal à",neq:"est différent de",gt:"est supérieur à",lt:"est inférieur à",answered:"a une réponse"};function k(e){return"yesno"===e.type?["Oui","Non"]:"rating"===e.type?["1","2","3","4","5"]:e.options||[]}function S(e){let t=0;return e.forEach(e=>{const n=parseInt(String(e.code||"").replace(/\D/g,""),10);n>t&&(t=n)}),"q"+(t+1)}function C(e,t="single"){return{id:p(),code:S(e),label:"",hint:"",type:t,required:!1,personal:w(t),options:[],min:null,max:null,showIf:null}}function E(e,t){const n=e.showIf;if(!n||!n.q)return!0;const s=t[n.q];if("answered"===n.op)return!h(s);if(h(s))return!1;const a=Array.isArray(s)?s.map(String).includes(String(n.value)):String(s)===String(n.value);return"eq"===n.op?a:"neq"===n.op?!a:"gt"===n.op?Number(s)>Number(n.value):"lt"!==n.op||Number(s)<Number(n.value)}const j=["Bois de chauffe","Charbon de bois","Gaz butane","Électricité","Résidus agricoles / bouses"];const T=()=>m.get("queue",[]);let _=!1;async function A(){if(!s||_||!navigator.onLine)return;const e=T();if(!e.length)return H();_=!0;const t=[];for(const n of e){try{await N(n)}catch(e){/row-level security|violates/i.test($(e))||t.push(n);continue}const{error:e}=await s.from("submissions").insert(n);if(e&&"23505"!==e.code){if(/row-level security|violates/i.test(e.message||""))continue;t.push(n)}}m.set("queue",t),_=!1,H(),e.length!==t.length&&g(e.length-t.length+" réponse(s) synchronisée(s)")}async function N(e){for(const[t,n]of Object.entries(e.answers)){if("string"!=typeof n||!n.startsWith("data:image/"))continue;const a=`${e.form_id}/${e.id}/${t}.jpg`,i=await(await fetch(n)).blob(),{error:r}=await s.storage.from("photos").upload(a,i,{contentType:"image/jpeg",upsert:!1});if(r&&!/exist|duplicate/i.test(r.message||"")&&"409"!==String(r.statusCode))throw r;e.answers[t]="photo:"+a}}function H(){const e=T().length,t=i("#net");navigator.onLine?e?(t.textContent=`${e} réponse(s) en attente d’envoi…`,t.classList.remove("hidden")):t.classList.add("hidden"):(t.textContent="Hors ligne — les réponses sont gardées sur ce téléphone"+(e?` (${e} en attente)`:""),t.classList.remove("hidden"))}addEventListener("online",()=>{H(),A()}),addEventListener("offline",H);let I=null;const D=()=>I?.user||null;function O(){const e=location.hash,t=(e,t,n)=>`<a href="${e}" class="${n?"on":""}">${t}</a>`;i("#topnav").innerHTML=/^#\/f\//.test(e)?"":t("#/donnees","Données ouvertes",e.startsWith("#/donnees"))+t("#/verifier","Détecteur IA","#/verifier"===e)+(D()?t("#/formulaires","Mes formulaires",/formulaires|editer|resultats/.test(e))+'<a href="#/deconnexion">Quitter</a>':t("#/connexion","Connexion","#/connexion"===e))}const P=[[/^#?\/?$/,async function(e){o.innerHTML=`\n  <section class="hero">\n    <h1>Collecter, analyser et partager les données de recherche au Sénégal</h1>\n    <p>Crée ton questionnaire en quelques minutes, collecte sur le terrain même sans réseau, obtiens tes statistiques instantanément — et rejoins la première base de données de recherche ouverte du Sénégal.</p>\n    <div class="row">\n      <a class="btn a big" href="${D()?"#/formulaires":"#/connexion"}">${D()?"Mes formulaires":"Commencer gratuitement"}</a>\n      <a class="btn big" style="background:transparent;color:#fff" href="#/donnees">Explorer les données</a>\n    </div>\n  </section>\n  <div class="feat">\n    <div class="card"><b>📶 Hors ligne</b><span class="muted">Les réponses sont gardées sur le téléphone et envoyées dès le retour du réseau.</span></div>\n    <div class="card"><b>🔗 Lien, WhatsApp, QR code</b><span class="muted">Les répondants n’ont besoin d’aucun compte ni d’aucune application.</span></div>\n    <div class="card"><b>🧠 Logique de recherche</b><span class="muted">Questions conditionnelles, contrôles de cohérence, codes de variables, dictionnaire.</span></div>\n    <div class="card"><b>📊 Analyse immédiate</b><span class="muted">Moyennes, médianes, répartitions, tableaux croisés, export CSV pour R, SPSS, Excel.</span></div>\n  </div>\n  <div class="card"><div class="row"><h2 style="margin:0">Dernières données ouvertes</h2><a class="sp" href="#/donnees">Tout voir →</a></div><div id="homeCat" style="margin-top:10px"><div class="muted">Chargement…</div></div></div>\n  <footer class="foot">SamaCollect — logiciel libre au service de la recherche sénégalaise.</footer>`;const{data:t,error:n}=await s.rpc("open_catalog");if(!e())return;i("#homeCat").innerHTML=n?'<div class="muted">Catalogue indisponible hors ligne.</div>':t?.length?t.slice(0,3).map(de).join(""):'<div class="muted">Aucun jeu de données ouvert pour l’instant. Le tien peut être le premier !</div>'}],[/^#\/connexion$/,function(){if(D())return void(location.hash="#/formulaires");let e="login";const t=()=>{o.innerHTML=`<div class="card" style="max-width:440px;margin:20px auto">\n      <div class="tabs"><button data-m="login" class="${"login"===e?"on":""}">Connexion</button><button data-m="signup" class="${"signup"===e?"on":""}">Créer un compte</button></div>\n      <form id="authF">\n        ${"signup"===e?'<label class="f">Nom complet</label><input type="text" name="name" required autocomplete="name">':""}\n        <label class="f">E-mail</label><input type="email" name="email" required autocomplete="email">\n        <label class="f">Mot de passe</label><input type="password" name="password" required minlength="8" autocomplete="${"signup"===e?"new-password":"current-password"}">\n        <div id="authMsg"></div>\n        <button class="p big" style="width:100%;margin-top:14px">${"signup"===e?"Créer mon compte":"Se connecter"}</button>\n      </form>\n      ${"login"===e?'<p class="muted" style="text-align:center"><a href="#" id="forgot">Mot de passe oublié ?</a></p>':'<p class="muted small">Gratuit. Le compte sert uniquement à créer des formulaires ; les répondants n’en ont pas besoin.</p>'}\n    </div>`,r(".tabs button").forEach(n=>n.onclick=()=>{e=n.dataset.m,t()}),i("#forgot")?.addEventListener("click",async e=>{e.preventDefault();const t=i("[name=email]").value.trim();if(!t)return g("Saisis d’abord ton e-mail");const{error:n}=await s.auth.resetPasswordForEmail(t,{redirectTo:v()});g(n?$(n):"E-mail de réinitialisation envoyé")}),i("#authF").onsubmit=async t=>{t.preventDefault();const n=new FormData(t.target),a=t.target.querySelector("button");a.disabled=!0;const r=n.get("email").trim(),o=n.get("password");let c;if(c="signup"===e?await s.auth.signUp({email:r,password:o,options:{data:{full_name:n.get("name").trim()},emailRedirectTo:v()}}):await s.auth.signInWithPassword({email:r,password:o}),a.disabled=!1,c.error)return void(i("#authMsg").innerHTML=`<div class="note" style="margin-top:12px">${l(function(e){const t=$(e);return/invalid login/i.test(t)?"E-mail ou mot de passe incorrect.":/not confirmed/i.test(t)?"Confirme d’abord ton adresse via le lien reçu par e-mail.":/already registered/i.test(t)?"Un compte existe déjà avec cet e-mail.":/rate limit/i.test(t)?"Trop de tentatives, réessaie dans quelques minutes.":t}(c.error))}</div>`);if("signup"===e&&!c.data.session)return void(i("#authMsg").innerHTML='<div class="ok" style="margin-top:12px">Compte créé. Ouvre le lien de confirmation reçu par e-mail, puis connecte-toi.</div>');const d=m.get("after","#/formulaires");m.set("after",null),location.hash=d||"#/formulaires"}};t()}],[/^#\/deconnexion$/,async()=>{await(s?.auth.signOut()),location.hash="#/"}],[/^#\/formulaires$/,F(async function(e){o.innerHTML='<div class="row" style="margin-bottom:14px"><h1 style="margin:0">Mes formulaires</h1><span class="sp"></span>\n    <button class="p" id="newF">+ Nouveau</button><button id="tplF">Modèle bois-énergie</button></div><div id="list"><div class="empty">Chargement…</div></div>';const t=async e=>{const t=D().user_metadata?.full_name||"",n={title:"Nouveau formulaire",description:"",questions:[C([],"text")],settings:{askEnumerator:!1},author_name:t,...e},{data:a,error:i}=await s.from("forms").insert(n).select().single();if(i)return g($(i));location.hash="#/editer/"+a.id};i("#newF").onclick=()=>t({}),i("#tplF").onclick=()=>t(function(){const e=[],t=t=>{const n={...C(e,t.type),...t};return e.push(n),n};t({label:"Commune / village",type:"text",required:!0,personal:!1}),t({label:"Milieu de résidence",type:"single",required:!0,options:["Urbain","Périurbain","Rural"]}),t({label:"Taille du ménage (nombre de personnes)",type:"number",required:!0,min:1,max:60});const n=t({label:"Principal combustible de cuisson",type:"single",required:!0,options:j});t({label:"Tous les combustibles utilisés",type:"multi",options:j});const s=t({label:"Mode d'approvisionnement en bois",type:"single",options:["Ramassage","Achat","Les deux"],showIf:{q:n.id,op:"eq",value:"Bois de chauffe"}});return t({label:"Distance jusqu’au lieu de ramassage (km)",type:"number",min:0,max:50,showIf:{q:s.id,op:"neq",value:"Achat"}}),t({label:"Dépense mensuelle en combustibles (FCFA)",type:"number",min:0,max:5e5}),t({label:"Type de foyer utilisé",type:"single",options:["Foyer traditionnel (3 pierres)","Foyer amélioré","Réchaud à gaz","Autre"]}),t({label:"Constatez-vous une raréfaction du bois ces 5 dernières années ?",type:"yesno"}),t({label:"Satisfaction quant à l'accès à l'énergie",type:"rating",hint:"1 = pas du tout satisfait, 5 = très satisfait"}),t({label:"Observations",type:"long"}),{title:"Enquête ménages – bois-énergie (région de Thiès)",description:"Usages, approvisionnement et dépenses en combustibles domestiques des ménages.",discipline:"Environnement / énergie",region:"Thiès",questions:e,settings:{askEnumerator:!0}}}());const{data:n,error:a}=await s.from("forms").select("*").eq("owner",D().id).order("updated_at",{ascending:!1});if(!e())return;if(a)return void(i("#list").innerHTML=`<div class="card empty">${l($(a))}</div>`);if(!n.length)return void(i("#list").innerHTML='<div class="card empty">Tu n’as pas encore de formulaire.<br>Crée-en un, ou pars du modèle d’enquête bois-énergie.</div>');i("#list").innerHTML=n.map(e=>`<div class="card"><div class="row">\n      <div style="flex:1;min-width:200px"><b>${l(e.title)}</b> <span class="chip ${U[e.status][1]}">${U[e.status][0]}</span>${e.open_data?' <span class="chip">Données ouvertes</span>':""}\n      <div class="muted">${e.questions.length} questions · modifié le ${u(e.updated_at)}</div></div>\n      <a class="btn" href="#/editer/${e.id}">Modifier</a>\n      <a class="btn p" href="#/resultats/${e.id}">Résultats</a>\n      <a class="btn" href="#/resultats/${e.id}/partager">Partager</a>\n      <button class="g d" data-del="${e.id}" title="Supprimer">✕</button></div></div>`).join(""),r("[data-del]").forEach(e=>e.onclick=async()=>{const t=n.find(t=>t.id===e.dataset.del);if(!await f(`Supprimer « ${t.title} » et toutes ses réponses ? Action définitive.`,"Supprimer"))return;const{error:a}=await s.from("forms").delete().eq("id",t.id);if(a)return g($(a));g("Formulaire supprimé"),z()})})],[/^#\/editer\/([\w-]+)$/,F(async function(e,t){o.innerHTML='<div class="empty">Chargement…</div>';const{data:n,error:a}=await s.from("forms").select("*").eq("id",e).maybeSingle();if(!t())return;if(a||!n||n.owner!==D().id)return void(o.innerHTML='<div class="card empty">Formulaire introuvable.</div>');const c=JSON.parse(JSON.stringify(n));c.settings=c.settings||{};let d=!1;const u=()=>{d=!0,i("#saveState").textContent="Modifications non enregistrées"},h=(e,t)=>{const n=c.questions.slice(0,t).filter(e=>e.label.trim()),s=e.showIf||{},a=n.find(e=>e.id===s.q),i=s.q&&"answered"!==s.op?!a||!M.includes(a.type)&&!q(a.type)||"eq"!==s.op&&"neq"!==s.op?`<input type="text" data-k="condv" value="${l(s.value??"")}" placeholder="valeur">`:`<select data-k="condv">${k(a).map(e=>`<option ${String(s.value)===e?"selected":""}>${l(e)}</option>`).join("")}</select>`:"";return`<div class="q" data-i="${t}">\n      <div class="row"><span class="chip">${l(e.code)}</span>\n        <select data-k="type">${Object.entries(x).map(([t,n])=>`<option value="${t}" ${e.type===t?"selected":""}>${n}</option>`).join("")}</select>\n        <span class="sp"><button class="g" data-a="up" title="Monter">↑</button><button class="g" data-a="down" title="Descendre">↓</button><button class="g" data-a="dup" title="Dupliquer">⧉</button><button class="g d" data-a="del" title="Supprimer">✕</button></span></div>\n      <input type="text" data-k="label" placeholder="Intitulé de la question" value="${l(e.label)}" style="margin-top:8px">\n      <input type="text" data-k="hint" placeholder="Consigne ou précision (facultatif)" value="${l(e.hint)}" style="margin-top:6px">\n      ${q(e.type)?`<label class="f">Options (une par ligne)</label><textarea data-k="options">${l((e.options||[]).join("\n"))}</textarea>`:""}\n      ${"number"===e.type?`<div class="row" style="margin-top:8px"><span class="muted">Valeur min</span><input type="number" data-k="min" value="${e.min??""}"><span class="muted">max</span><input type="number" data-k="max" value="${e.max??""}"></div>`:""}\n      <div class="row" style="margin-top:8px;gap:16px">\n        <label class="row" style="gap:6px;font-size:13px"><input type="checkbox" data-k="required" ${e.required?"checked":""}> Obligatoire</label>\n        <label class="row" style="gap:6px;font-size:13px" title="Exclue des données ouvertes"><input type="checkbox" data-k="personal" ${e.personal?"checked":""}> Donnée personnelle</label>\n        <label class="row" style="gap:6px;font-size:13px">Code <input type="text" data-k="code" value="${l(e.code)}" style="width:80px;min-width:0;flex:none;padding:5px 8px"></label>\n      </div>\n      ${n.length?`<div class="cond row"><span>Afficher</span>\n        <select data-k="condq"><option value="">toujours</option>${n.map(e=>`<option value="${e.id}" ${s.q===e.id?"selected":""}>si ${l(e.code)} – ${l(e.label.slice(0,40))}</option>`).join("")}</select>\n        ${s.q?`<select data-k="condop">${Object.entries(L).map(([e,t])=>`<option value="${e}" ${s.op===e?"selected":""}>${t}</option>`).join("")}</select>${i}`:""}</div>`:""}\n    </div>`},v=()=>{o.innerHTML=`\n    <div class="row" style="margin-bottom:12px"><a href="#/formulaires">← Mes formulaires</a><span class="sp muted" id="saveState">${d?"Modifications non enregistrées":""}</span></div>\n    <div class="card">\n      <label class="f" style="margin-top:0">Titre du formulaire</label><input type="text" data-f="title" value="${l(c.title)}">\n      <label class="f">Présentation aux répondants</label><textarea data-f="description" placeholder="Objectif de l’étude, durée, confidentialité…">${l(c.description)}</textarea>\n      <label class="switch"><input type="checkbox" data-s="askEnumerator" ${c.settings.askEnumerator?"checked":""}><span><b>Mode enquêteur</b><br><span class="muted">Demande le nom de l’enquêteur et permet d’enchaîner les questionnaires sur le même téléphone.</span></span></label>\n    </div>\n    <h2>Questions (${c.questions.length})</h2>\n    <div id="qs">${c.questions.map(h).join("")}</div>\n    <div class="row" style="margin-bottom:16px"><button data-a="add">+ Ajouter une question</button></div>\n    <div class="card">\n      <h2>Fiche scientifique</h2>\n      <div class="grid2">\n        <div><label class="f">Auteur·e</label><input type="text" data-f="author_name" value="${l(c.author_name)}"></div>\n        <div><label class="f">Institution</label><input type="text" data-f="institution" value="${l(c.institution)}" placeholder="Ex. Université Iba Der Thiam de Thiès"></div>\n        <div><label class="f">Discipline</label><input type="text" data-f="discipline" value="${l(c.discipline)}"></div>\n        <div><label class="f">Zone d’étude</label><input type="text" data-f="region" value="${l(c.region)}" placeholder="Ex. Thiès"></div>\n      </div>\n      <label class="switch" style="margin-top:8px"><input type="checkbox" data-f="open_data" ${c.open_data?"checked":""}><span><b>Partager en données ouvertes (licence CC BY 4.0)</b><br><span class="muted">Les réponses deviennent consultables et téléchargeables par tous, <b>sans</b> les questions marquées « Donnée personnelle » ni le nom des enquêteurs. Ton nom est cité comme auteur·e.</span></span></label>\n    </div>\n    <div class="card"><div class="row">\n      <button class="p big" data-a="save">Enregistrer</button>\n      ${"published"!==c.status?'<button class="a big" data-a="publish">Publier et collecter</button>':'<button class="big" data-a="close">Clôturer la collecte</button>'}\n      ${"published"===c.status?`<a class="btn big" href="#/f/${c.id}" target="_blank" rel="noopener">Aperçu</a>`:'<button class="big" data-a="preview">Aperçu</button>'}\n    </div><p class="muted small" style="margin-bottom:0">Statut : ${U[c.status][0]}. Modifier un formulaire en cours de collecte est possible : les réponses existantes sont conservées.</p></div>`};v();const b=async(e={})=>{Object.assign(c,e);const t=c.questions.filter(e=>e.label.trim()),n=t.find(e=>q(e.type)&&(e.options||[]).length<2);if(!c.title.trim())return g("Donne un titre au formulaire"),!1;if(!t.length)return g("Ajoute au moins une question"),!1;if(n)return g(`${n.code} : indique au moins 2 options`),!1;const a=t.map(e=>e.code.trim()),i=a.find((e,t)=>!e||a.indexOf(e)!==t);if(void 0!==i)return g(`Code de variable vide ou en double : « ${i} »`),!1;const r=new Set(t.map(e=>e.id));t.forEach(e=>{e.showIf&&!r.has(e.showIf.q)&&(e.showIf=null),q(e.type)||(e.options=[])});const o={title:c.title.trim(),description:c.description.trim(),questions:t,settings:c.settings,status:c.status,open_data:!!c.open_data,author_name:c.author_name.trim(),institution:c.institution.trim(),discipline:c.discipline.trim(),region:c.region.trim()},{error:l}=await s.from("forms").update(o).eq("id",c.id);return l?(g($(l)),!1):(c.questions=t,d=!1,g("Enregistré ✓"),!0)};o.addEventListener("input",E),o.addEventListener("change",E),o.addEventListener("click",j);const y=()=>{o.removeEventListener("input",E),o.removeEventListener("change",E),o.removeEventListener("click",j),removeEventListener("hashchange",y)};function E(e){const t=e.target;if(t.dataset.f)return c[t.dataset.f]="checkbox"===t.type?t.checked:t.value,u();if(t.dataset.s)return c.settings[t.dataset.s]=t.checked,u();const n=t.closest("[data-i]");if(!n||!t.dataset.k)return;const s=c.questions[+n.dataset.i],a=t.dataset.k;if(("input"!==e.type||"SELECT"!==t.tagName&&"checkbox"!==t.type)&&("change"!==e.type||"checkbox"===t.type||"SELECT"===t.tagName))if(u(),"label"===a||"hint"===a||"code"===a)s[a]=t.value;else if("options"===a)s.options=t.value.split("\n").map(e=>e.trim()).filter(Boolean);else if("required"===a||"personal"===a)s[a]=t.checked;else if("min"===a||"max"===a)s[a]=""===t.value?null:Number(t.value);else if("type"===a)s.type=t.value,w(s.type)&&(s.personal=!0),v();else if("condq"===a){if(s.showIf=t.value?{q:t.value,op:"eq",value:""}:null,s.showIf){const e=k(c.questions.find(e=>e.id===t.value));e.length?s.showIf.value=e[0]:s.showIf.op="answered"}v()}else"condop"===a?(s.showIf.op=t.value,v()):"condv"===a&&(s.showIf.value=t.value)}async function j(e){const t=e.target.closest("button");if(!t||!t.dataset.a)return;const s=t.dataset.a,a=t.closest("[data-i]"),i=a?+a.dataset.i:-1,o=c.questions;if("add"===s)return o.push(C(o)),u(),v(),void r("[data-k=label]").pop()?.focus();if("del"===s){const e=o[i];return o.splice(i,1),o.forEach(t=>{t.showIf?.q===e.id&&(t.showIf=null)}),u(),void v()}if("dup"===s){const e=JSON.parse(JSON.stringify(o[i]));return e.id=p(),e.code=S(o),o.splice(i+1,0,e),u(),void v()}return"up"===s&&i>0?([o[i-1],o[i]]=[o[i],o[i-1]],T(o),u(),void v()):"down"===s&&i<o.length-1?([o[i+1],o[i]]=[o[i],o[i+1]],T(o),u(),void v()):"save"===s?(t.disabled=!0,await b(),t.disabled=!1,void v()):void("preview"!==s?"publish"!==s?"close"===s&&await f("Clôturer la collecte ? Le lien n’acceptera plus de réponses (tu pourras republier).","Clôturer")&&await b({status:"closed"})&&v():await b({status:"published"})?location.hash="#/resultats/"+c.id+"/partager":c.status=n.status:await b()&&(m.set("preview_"+c.id,c),location.hash="#/f/"+c.id))}function T(e){e.forEach((t,n)=>{t.showIf&&!e.slice(0,n).some(e=>e.id===t.showIf.q)&&(t.showIf=null)})}addEventListener("hashchange",y)})],[/^#\/resultats\/([\w-]+)(?:\/(\w+))?$/,F(async function(e,t="reponses",n){o.innerHTML='<div class="empty">Chargement…</div>';const[{data:a},{data:u,error:p}]=await Promise.all([s.from("forms").select("*").eq("id",e).maybeSingle(),s.from("submissions").select("*").eq("form_id",e).order("created_at",{ascending:!0})]);if(!n())return;if(!a||a.owner!==D().id)return void(o.innerHTML='<div class="card empty">Formulaire introuvable.</div>');if(p)return void(o.innerHTML=`<div class="card empty">${l($(p))}</div>`);const m={reponses:"Réponses",analyse:"Analyse",qualite:"Qualité",partager:"Partager",exporter:"Exporter"};o.innerHTML=`<div class="row" style="margin-bottom:10px"><a href="#/formulaires">← Mes formulaires</a><span class="sp"></span><a href="#/editer/${a.id}">Modifier</a></div>\n    <h1>${l(a.title)} <span class="chip ${U[a.status][1]}">${U[a.status][0]}</span></h1>\n    <div class="tabs">${Object.entries(m).map(([e,n])=>`<button data-t="${e}" class="${e===t?"on":""}">${n}${"reponses"===e?` (${u.length})`:""}</button>`).join("")}</div>\n    <div id="pane"></div>`,r(".tabs button").forEach(e=>e.onclick=()=>{history.replaceState(null,"","#/resultats/"+a.id+"/"+e.dataset.t),r(".tabs button").forEach(t=>t.classList.toggle("on",t===e)),x(e.dataset.t)});const f=i("#pane"),x=e=>"analyse"===e?ee(f,a.questions,u):"qualite"===e?function(e,t,n){if(!n.length)return void(e.innerHTML='<div class="card empty">Le contrôle qualité démarre dès la première réponse.</div>');const s=function(e,t){const n=e.filter(e=>"text"===e.type||"long"===e.type),s=e.filter(e=>"number"===e.type),a=e.filter(e=>"rating"===e.type),i=e.filter(e=>"gps"===e.type),r=t.map(e=>e.answers?._meta?.t).filter(Number.isFinite),o=r.length>=3?K(r).med:null,l=Object.fromEntries(s.map(e=>[e.id,le(t.map(t=>t.answers?.[e.id]).filter(e=>"number"==typeof e))])),d=t.map(e=>Object.fromEntries(n.map(t=>{const n=e.answers?.[t.id];return[t.id,"string"==typeof n&&n.split(/\s+/).length>=20?ie(n):null]}))),u=t.map(t=>JSON.stringify(e.filter(e=>"photo"!==e.type&&"gps"!==e.type).map(e=>t.answers?.[e.id]??null)));return t.map((r,p)=>{const m=r.answers||{},v=m._meta||{},g=[],f=(e,t,n)=>g.push({pts:e,label:t,detail:n});u.some((e,t)=>t!==p&&e===u[p])&&f(35,"Doublon","toutes les réponses sont identiques à une autre fiche");const b=e.filter(e=>!h(m[e.id])).length;if(Number.isFinite(v.t)&&b>=3&&(o&&v.t<.3*o||v.t<2*b)&&f(25,"Saisie trop rapide",`${v.t} s pour ${b} réponses${o?` (médiane : ${Math.round(o)} s)`:""}`),n.forEach(e=>{const n=m[e.id];if("string"!=typeof n)return;const s=v.q?.[e.id];s&&n.length>=40&&s.p>=.6*n.length?f(30,"Texte collé",`${e.code} : ${s.p} caractères collés, ${s.k} frappes`):s&&n.length>=80&&s.k<.3*n.length&&f(20,"Saisie sans frappe",`${e.code} : ${s.k} frappes pour ${n.length} caractères`);const a=ae(n);if(a.score>=45&&f(Math.round(a.score/3),"Style rédactionnel automatique",`${e.code} : ${a.signals.join(" ; ")}`),d[p][e.id])for(let n=0;n<t.length;n++){if(n===p||!d[n][e.id])continue;const t=re(d[p][e.id],d[n][e.id]);if(t>=.5){f(25,"Texte repris d’une autre fiche",`${e.code} : ${Math.round(100*t)} % de formulation commune`);break}}}),a.length>=3){const e=a.map(e=>m[e.id]).filter(e=>null!=e);e.length>=3&&1===new Set(e).size&&f(15,"Notes identiques partout",`note ${e[0]} sur ${e.length} échelles`)}s.forEach(e=>{const t=m[e.id];"number"==typeof t&&l[e.id](t)&&f(10,"Valeur atypique",`${e.code} = ${c(t)}`)});const y=e.filter(e=>E(e,m)&&"photo"!==e.type&&"gps"!==e.type);if(y.length>=5){const e=y.filter(e=>h(m[e.id])).length/y.length;e>.5&&f(15,"Nombreuses non-réponses",`${Math.round(100*e)} % des questions sans réponse`)}const $=new Date(r.client_created_at||r.created_at).getHours();$<5&&f(10,"Horaire inhabituel",`saisie à ${$} h`),i.forEach(e=>{const n=m[e.id];if("number"!=typeof n?.lat)return;n.acc>100&&f(10,"Position GPS imprécise",`± ${n.acc} m`);const s=t.filter((t,s)=>s!==p&&(t.enumerator||"")===(r.enumerator||"")&&"number"==typeof t.answers?.[e.id]?.lat&&oe(n,t.answers[e.id])<10).length;s>=2&&f(20,"Position répétée",`${s+1} fiches du même enquêteur au même endroit`)});const x=Math.max(0,100-g.reduce((e,t)=>e+t.pts,0));return{s:r,score:x,flags:g,level:x>=80?"ok":x>=55?"check":"bad"}})}(t.questions,n),a=e=>s.filter(t=>t.level===e).length,o=Math.round(s.reduce((e,t)=>e+t.score,0)/s.length),u={};s.forEach(e=>e.flags.forEach(e=>u[e.label]=(u[e.label]||0)+1));const p={};s.forEach(e=>{const t=e.s.enumerator||"—";(p[t]=p[t]||[]).push(e)});const m=Object.entries(p).sort((e,t)=>t[1].length-e[1].length),v=s.filter(e=>"ok"!==e.level).sort((e,t)=>e.score-t.score);Object.fromEntries(t.questions.map(e=>[e.id,e]));e.innerHTML=`\n    <div class="kpis">\n      <div class="kpi"><span class="muted">Indice de fiabilité</span><b style="color:${o>=80?"var(--pri)":o>=55?"#b07316":"var(--danger)"}">${o} / 100</b></div>\n      <div class="kpi"><span class="muted">Fiches fiables</span><b>${a("ok")}</b></div>\n      <div class="kpi"><span class="muted">À vérifier</span><b>${a("check")}</b></div>\n      <div class="kpi"><span class="muted">Suspectes</span><b>${a("bad")}</b></div>\n    </div>\n    ${Object.keys(u).length?`<div class="card"><h3>Signaux détectés</h3>${Z(Object.entries(u).sort((e,t)=>t[1]-e[1]),s.length)}</div>`:'<div class="card ok" style="margin-bottom:14px">Aucun signal détecté : toutes les fiches sont fiables.</div>'}\n    ${m.length>1||m[0]&&"—"!==m[0][0]?`<div class="card"><h3>Suivi des enquêteurs</h3><div class="tw"><table><thead><tr><th>Enquêteur</th><th>Fiches</th><th>Indice moyen</th><th>À vérifier / suspectes</th><th>Durée médiane</th></tr></thead><tbody>\n      ${m.map(([e,t])=>{const n=t.map(e=>e.s.answers?._meta?.t).filter(Number.isFinite),s=Math.round(t.reduce((e,t)=>e+t.score,0)/t.length);return`<tr><td>${l(e)}</td><td>${t.length}</td><td><span class="chip ${s>=80?"":s>=55?"w":"d"}">${s}</span></td><td>${t.filter(e=>"ok"!==e.level).length}</td><td>${n.length?Math.round(K(n).med)+" s":"–"}</td></tr>`}).join("")}</tbody></table></div></div>`:""}\n    <div class="card"><div class="row" style="margin-bottom:8px"><h3 style="margin:0">Fiches à contrôler (${v.length})</h3><span class="sp"></span><button class="p" id="qcExport" ${a("ok")?"":"disabled"}>CSV des fiches fiables</button></div>\n      ${v.length?v.map((e,n)=>`<div class="q"><div class="row"><span class="chip ${ce[e.level][1]}">${e.score}/100 · ${ce[e.level][0]}</span><span class="muted small">${d(e.s.client_created_at||e.s.created_at)}${e.s.enumerator?" · "+l(e.s.enumerator):""}</span><span class="sp"></span><button class="g" data-open="${n}">Voir la fiche</button></div>\n        <ul style="margin:8px 0 0;padding-left:18px;font-size:13px">${e.flags.map(e=>`<li><b>${l(e.label)}</b> — ${l(e.detail)}</li>`).join("")}</ul>\n        <div class="hidden small" data-body="${n}" style="margin-top:8px">${t.questions.filter(t=>!h(e.s.answers?.[t.id])).map(t=>`<div><span class="muted">${l(t.code)} ${l(t.label)} :</span> ${"photo"===t.type?"📷":l(V(e.s.answers[t.id]))}</div>`).join("")}</div></div>`).join(""):'<p class="muted" style="margin:0">Rien à contrôler.</p>'}</div>\n    <p class="muted small">Méthode : indice calculé à partir du comportement de saisie (durée, collage, frappe), de la cohérence des réponses (doublons, valeurs atypiques, positions GPS, non-réponses) et de l’analyse du style des textes. Chaque fiche signalée se confirme par un rappel du répondant ou de l’enquêteur.</p>`,r("[data-open]",e).forEach(t=>t.onclick=()=>{i(`[data-body="${t.dataset.open}"]`,e).classList.toggle("hidden")}),i("#qcExport").onclick=()=>b(y(t.title)+"_fiables.csv",W(t.questions,s.filter(e=>"ok"===e.level).map(e=>e.s),{useCodes:!1,withEnum:!!t.settings?.askEnumerator}))}(f,a,u):"partager"===e?function(e,t){const n=v()+"#/f/"+t.id;if("published"!==t.status)return void(e.innerHTML=`<div class="card"><div class="note">Ce formulaire n’est pas en collecte (${U[t.status][0].toLowerCase()}). Publie-le depuis l’éditeur pour activer le lien.</div><a class="btn p" href="#/editer/${t.id}">Ouvrir l’éditeur</a></div>`);let s="";try{const e=qrcode(0,"M");e.addData(n),e.make(),s=e.createDataURL(8,2)}catch{}const a=`📋 ${t.title}\n\nMerci de participer à cette enquête (quelques minutes) :\n${n}`;e.innerHTML=`<div class="card"><h2>Lien de collecte</h2><div class="share" id="shareUrl">${l(n)}</div>\n    <div class="row" style="margin-top:10px">\n      <button class="p" id="cp">Copier le lien</button>\n      <a class="btn a" href="https://wa.me/?text=${encodeURIComponent(a)}" target="_blank" rel="noopener">Partager sur WhatsApp</a>\n      <a class="btn" href="${n}" target="_blank" rel="noopener">Ouvrir</a></div>\n    <p class="muted small">Les répondants n’ont besoin ni de compte ni d’application. Le questionnaire fonctionne hors ligne une fois ouvert.</p></div>\n    ${s?`<div class="card"><h2>QR code</h2><p class="muted">À imprimer sur tes fiches de terrain ou à afficher : il suffit de le scanner.</p><div class="qr"><img src="${s}" alt="QR code du questionnaire"></div>\n    <div class="row end" style="margin-top:8px"><a class="btn" href="${s}" download="qr_${y(t.title)}.gif">Télécharger le QR code</a></div></div>`:""}\n    <div class="card"><h2>Astuce terrain</h2><p class="muted" style="margin:0">Ouvre le lien une fois avec du réseau sur chaque téléphone d’enquêteur, puis « Ajouter à l’écran d’accueil ». Ensuite, la collecte marche toute la journée sans connexion.</p></div>`,i("#cp").onclick=async()=>{try{await navigator.clipboard.writeText(n),g("Lien copié")}catch{g("Copie impossible : sélectionne le lien")}}}(f,a):"exporter"===e?Y(f,a,u,!0):void Q(f,a,u);x(m[t]?t:"reponses")})],[/^#\/f\/([\w-]+)$/,async function(e,t){o.innerHTML='<div class="empty">Chargement du questionnaire…</div>';let n=null;const{data:a,error:r}=await s.from("forms").select("id,title,description,questions,settings,status,author_name,institution,owner").eq("id",e).maybeSingle();if(!t())return;a?(n=a,m.set("form_"+e,a)):r&&(n=m.get("form_"+e,null));const c=n&&"draft"!==n.status?null:m.get("preview_"+e,null),d=!(!c||!D()||c.owner!==D().id);d&&(n=c);if(!n)return void(o.innerHTML='<div class="card empty">Ce questionnaire est introuvable, pas encore publié, ou n’a jamais été ouvert sur cet appareil hors connexion.</div>');if("closed"===n.status)return void(o.innerHTML=`<div class="card empty"><h2>${l(n.title)}</h2>La collecte est terminée. Merci de votre intérêt.</div>`);const u=!!n.settings?.askEnumerator;let p=0,v={};const f=()=>{p=Date.now(),v={},o.innerHTML=`\n    ${d?'<div class="note">Aperçu : les réponses ne seront pas enregistrées. Publie le formulaire pour collecter.</div>':""}\n    <div class="card"><h1>${l(n.title)}</h1>${n.description?`<p style="white-space:pre-line">${l(n.description)}</p>`:""}\n      ${n.author_name||n.institution?`<p class="muted small" style="margin:0">${l([n.author_name,n.institution].filter(Boolean).join(" — "))}</p>`:""}\n      <div class="progress"><i id="prog" style="width:0"></i></div></div>\n    <form id="resp" novalidate>\n      ${u?`<div class="q"><label class="f" style="margin-top:0">Nom de l’enquêteur</label><input type="text" id="enumIn" value="${l(m.get("enum",""))}"></div>`:""}\n      ${n.questions.map(B).join("")}\n      <button class="p big" style="width:100%">Envoyer mes réponses</button>\n    </form>\n    <footer class="foot">Propulsé par <a href="#/">SamaCollect</a></footer>`;const e=i("#resp");e.addEventListener("input",a),e.addEventListener("change",a),a();const t=e=>e?.name?.startsWith("q_")?e.name.slice(2):null,s=e=>v[e]=v[e]||{k:0,p:0};function a(){const{ans:t}=J(n,e,!1),s=n.questions.filter(e=>!i(`[data-qid="${e.id}"]`).classList.contains("hidden"));i("#prog").style.width=(s.length?s.filter(e=>!h(t[e.id])).length/s.length*100:0)+"%"}e.addEventListener("keydown",e=>{const n=t(e.target);n&&1===e.key.length&&s(n).k++}),e.addEventListener("paste",e=>{const n=t(e.target);n&&(s(n).p+=(e.clipboardData?.getData("text")||"").length)}),e.addEventListener("click",e=>{const t=e.target.closest(".gpsbtn");if(!t)return;const n=t.closest(".q");if(!navigator.geolocation)return g("Ce téléphone ne donne pas accès au GPS");t.disabled=!0,t.textContent="📍 Localisation en cours…",navigator.geolocation.getCurrentPosition(e=>{const s={lat:+e.coords.latitude.toFixed(6),lon:+e.coords.longitude.toFixed(6),acc:Math.round(e.coords.accuracy)};n.querySelector("input[type=hidden]").value=JSON.stringify(s),n.querySelector(".gpsval").textContent=`${s.lat}, ${s.lon} — précision ± ${s.acc} m`,t.disabled=!1,t.textContent="📍 Mettre à jour la position",a()},e=>{t.disabled=!1,t.textContent="📍 Enregistrer la position",g(1===e.code?"Autorise l’accès à la position dans le navigateur":"Position introuvable : réessaie à découvert")},{enableHighAccuracy:!0,timeout:3e4,maximumAge:0})}),e.addEventListener("change",async e=>{if(!e.target.classList.contains("photoin"))return;const t=e.target.files[0],n=e.target.closest(".q");if(t)try{const e=await async function(e,t=1280,n=.65){let s=await createImageBitmap(e).catch(()=>null);s||(s=await new Promise((t,n)=>{const s=new Image;s.onload=()=>t(s),s.onerror=n,s.src=URL.createObjectURL(e)}));const a=Math.min(1,t/Math.max(s.width,s.height)),i=document.createElement("canvas");return i.width=Math.round(s.width*a),i.height=Math.round(s.height*a),i.getContext("2d").drawImage(s,0,0,i.width,i.height),i.toDataURL("image/jpeg",n)}(t);n.querySelector("input[type=hidden]").value=e;const s=n.querySelector(".photoprev");s.src=e,s.classList.remove("hidden"),a()}catch{g("Image illisible")}}),e.onsubmit=async t=>{t.preventDefault();const{ans:s,errors:a}=J(n,e,!0);if(a.length)return g(a[0].msg),void a[0].el.scrollIntoView({behavior:"smooth",block:"center"});if(d)return void g("Aperçu : réponses valides ✓ (non enregistrées)");const r={};n.questions.forEach(e=>{"text"!==e.type&&"long"!==e.type||"string"!=typeof s[e.id]||!v[e.id]||(r[e.id]=v[e.id])}),s._meta={t:Math.round((Date.now()-p)/1e3),q:r};const l=u?i("#enumIn").value.trim():"";u&&m.set("enum",l);const c={id:crypto.randomUUID?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,e=>{const t=16*Math.random()|0;return("x"===e?t:3&t|8).toString(16)}),form_id:n.id,answers:s,enumerator:l,client_created_at:(new Date).toISOString()},h=T();h.push(c);try{localStorage.setItem("sama_queue",JSON.stringify(h))}catch{return void g("Mémoire du téléphone pleine : reconnecte-toi au réseau pour envoyer les réponses en attente")}H(),await A();const b=T().some(e=>e.id===c.id);o.innerHTML=`<div class="card" style="text-align:center;padding:36px 16px"><div style="font-size:44px">✓</div><h2>Merci, vos réponses sont enregistrées.</h2>\n        <p class="muted">${b?"Pas de réseau : elles seront envoyées automatiquement dès le retour de la connexion. Ne videz pas les données du navigateur d’ici là.":"Elles ont bien été transmises."}</p>\n        ${u?'<button class="p big" id="again">Nouveau questionnaire</button>':""}\n        <p class="muted small" style="margin-top:24px">Vous aussi, collectez vos données gratuitement avec <a href="#/">SamaCollect</a>.</p></div>`,i("#again")?.addEventListener("click",()=>{f(),scrollTo(0,0)})}};f()}],[/^#\/donnees$/,async function(e){o.innerHTML='<h1>Données de recherche ouvertes</h1>\n    <p class="muted">Jeux de données collectés par des chercheurs avec SamaCollect et partagés sous licence CC BY 4.0. Anonymisés : les informations personnelles sont retirées automatiquement.</p>\n    <input type="text" id="search" placeholder="Rechercher : thème, région, discipline, auteur…" style="margin-bottom:14px"><div id="cat"><div class="empty">Chargement…</div></div>';const{data:t,error:n}=await s.rpc("open_catalog");if(!e())return;if(n)return void(i("#cat").innerHTML=`<div class="card empty">Catalogue indisponible : ${l($(n))}</div>`);const a=()=>{const e=i("#search").value.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,""),n=t.filter(t=>!e||[t.title,t.description,t.author_name,t.institution,t.discipline,t.region].join(" ").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").includes(e));i("#cat").innerHTML=n.length?n.map(de).join(""):`<div class="card empty">${t.length?"Aucun résultat.":"Aucun jeu de données ouvert pour l’instant."}<br><a href="#/connexion">Publie le premier !</a></div>`};i("#search").oninput=a,a()}],[/^#\/donnees\/([\w-]+)$/,async function(e,t){o.innerHTML='<div class="empty">Chargement…</div>';const[{data:n},{data:a,error:c}]=await Promise.all([s.rpc("open_catalog"),s.rpc("open_dataset",{fid:e})]);if(!t())return;const d=(n||[]).find(t=>t.id===e);if(!d||c)return void(o.innerHTML='<div class="card empty">Jeu de données introuvable ou non ouvert.</div>');const u=new Date(d.updated_at).getFullYear(),p=`${d.author_name||"Auteur inconnu"} (${u}). ${d.title} [jeu de données]. ${d.institution?d.institution+". ":""}SamaCollect. Licence CC BY 4.0. ${v()}#/donnees/${d.id}`;o.innerHTML=`<p><a href="#/donnees">← Données ouvertes</a></p><h1>${l(d.title)}</h1>\n    <div class="card"><p style="margin-top:0;white-space:pre-line">${l(d.description)}</p>\n    <div class="row">${d.discipline?`<span class="chip x">${l(d.discipline)}</span>`:""}${d.region?`<span class="chip x">📍 ${l(d.region)}</span>`:""}<span class="chip">${a.length} réponses</span><span class="chip">CC BY 4.0</span></div>\n    <label class="f">Citer ce jeu de données</label><div class="share" id="cite">${l(p)}</div>\n    <div class="row" style="margin-top:8px"><button id="cpc">Copier la citation</button></div></div>\n    <div class="tabs"><button data-t="analyse" class="on">Analyse</button><button data-t="exporter">Télécharger</button></div><div id="pane"></div>`,i("#cpc").onclick=async()=>{try{await navigator.clipboard.writeText(p),g("Citation copiée")}catch{g("Copie impossible")}};const m={title:d.title,questions:d.questions,settings:{}},h=i("#pane"),f=e=>"exporter"===e?Y(h,m,a,!1):ee(h,d.questions,a);r(".tabs button").forEach(e=>e.onclick=()=>{r(".tabs button").forEach(t=>t.classList.toggle("on",t===e)),f(e.dataset.t)}),f("analyse")}],[/^#\/verifier$/,function(){o.innerHTML='<h1>Détecteur IA <span class="chip">YAAKOBIND?</span></h1>\n    <p class="muted">Copie, mémoire, rapport ou réponse ouverte : colle le texte pour obtenir son indice de style automatique et le détail des indicateurs.</p>\n    <div class="card"><textarea id="vt" style="min-height:220px" placeholder="Colle le texte à analyser (au moins 30 mots)…"></textarea>\n    <div class="row" style="margin-top:10px"><button class="p big" id="vgo">Analyser</button><span class="muted small" id="vcount"></span></div></div><div id="vres"></div>';const e=i("#vt");e.oninput=()=>{i("#vcount").textContent=(e.value.match(se)||[]).length+" mots"},i("#vgo").onclick=()=>{const t=e.value.split(/\n\s*\n/).map(e=>e.trim()).filter(e=>(e.match(se)||[]).length>=30),n=ae(e.value);if(n.words<30)return void g("Il faut au moins 30 mots");const s=t.map(e=>({p:e,r:ae(e)})),a=s.filter(e=>e.r.score>=45).length,r=s.length?Math.round(a/s.length*100):0,o=n.score>=60?["Style fortement automatique","d"]:n.score>=35?["Style partiellement automatique","w"]:["Style humain",""];i("#vres").innerHTML=`<div class="kpis">\n        <div class="kpi"><span class="muted">Indice de style automatique</span><b>${n.score} / 100</b></div>\n        <div class="kpi"><span class="muted">Paragraphes concernés</span><b>${s.length?r+" %":"–"}</b></div>\n        <div class="kpi"><span class="muted">Seuil de tolérance</span><b>20 %</b></div>\n        <div class="kpi"><span class="muted">Verdict</span><b style="font-size:15px"><span class="chip ${o[1]}">${o[0]}</span></b></div></div>\n      <div class="card"><h3>Indicateurs</h3>${n.signals.length?`<ul style="margin:0;padding-left:18px">${n.signals.map(e=>`<li>${l(e)}</li>`).join("")}</ul>`:'<p class="muted" style="margin:0">Aucun indicateur de style automatique.</p>'}\n        <div class="stats" style="margin-top:12px"><div>Mots<b>${n.words}</b></div><div>Phrases<b>${n.sentences}</b></div><div>Mots / phrase<b>${c(n.mean)}</b></div><div>Richesse lexicale<b>${Math.round(100*n.ttr)} %</b></div></div></div>\n      ${s.length>1?`<div class="card"><h3>Analyse par paragraphe</h3>${s.map((e,t)=>`<div class="q"><div class="row"><b>§ ${t+1}</b><span class="chip ${e.r.score>=60?"d":e.r.score>=45?"w":""}">${e.r.score}/100</span></div><p class="small" style="margin:6px 0 0">${l(e.p.slice(0,280))}${e.p.length>280?"…":""}</p></div>`).join("")}</div>`:""}\n      <p class="muted small">L’indice mesure des marqueurs de style ; il oriente l’examen et se complète par un échange avec l’auteur.</p>`}}]];function F(e){return(...t)=>D()?e(...t):(m.set("after",location.hash),location.hash="#/connexion")}let R=0;async function z(){const e=++R;O(),window.scrollTo(0,0);const t=location.hash||"#/";if(/access_token|error_description|type=recovery/.test(t))o.innerHTML='<div class="empty">Connexion en cours…</div>';else{for(const[n,s]of P){const a=t.match(n);if(a){try{await s(...a.slice(1),()=>e===R)}catch(t){console.error(t),e===R&&(o.innerHTML=`<div class="card empty">Une erreur est survenue : ${l($(t))}</div>`)}return}}o.innerHTML='<div class="card empty">Page introuvable. <a href="#/">Retour à l’accueil</a></div>'}}addEventListener("hashchange",z);const U={draft:["Brouillon","x"],published:["En collecte",""],closed:["Clôturé","w"]};function B(e){const t="q_"+e.id,n=e.required?' <span style="color:var(--danger)">*</span>':"",s=(e,n)=>e.map(e=>`<label class="opt"><input type="${n}" name="${t}" value="${l(e)}"><span>${l(e)}</span></label>`).join("");let a=`<div class="q" data-qid="${e.id}"><label class="f" style="margin-top:0">${l(e.label)}${n}</label>${e.hint?`<div class="hint">${l(e.hint)}</div>`:""}`;switch(e.type){case"number":a+=`<input type="number" step="any" inputmode="decimal" name="${t}" ${null!=e.min?`min="${e.min}"`:""} ${null!=e.max?`max="${e.max}"`:""}>`;break;case"date":a+=`<input type="date" name="${t}">`;break;case"long":a+=`<textarea name="${t}"></textarea>`;break;case"single":a+=s(e.options,"radio");break;case"multi":a+=s(e.options,"checkbox");break;case"yesno":a+=s(["Oui","Non"],"radio");break;case"rating":a+=`<div class="rating">${s(["1","2","3","4","5"],"radio")}</div>`;break;case"gps":a+=`<button type="button" class="gpsbtn">📍 Enregistrer la position</button><div class="gpsval muted small" style="margin-top:6px"></div><input type="hidden" name="${t}">`;break;case"photo":a+=`<label class="btn" style="cursor:pointer">📷 Prendre ou choisir une photo<input type="file" accept="image/*" capture="environment" class="photoin" style="display:none"></label><img class="photoprev hidden" alt="" style="display:block;max-width:100%;max-height:260px;border-radius:10px;margin-top:8px"><input type="hidden" name="${t}">`;break;default:a+=`<input type="text" name="${t}">`}return a+'<div class="qerr small" style="color:var(--danger)"></div></div>'}function J(e,t,n){const s={},a=[];for(const i of e.questions){const e=t.querySelector(`[data-qid="${i.id}"]`);if(!e)continue;const o=E(i,s);if(e.classList.toggle("hidden",!o),e.classList.remove("err"),e.querySelector(".qerr").textContent="",!o)continue;const l="q_"+i.id;let c=null;if("multi"===i.type)c=r(`[name="${l}"]:checked`,e).map(e=>e.value);else if(["single","yesno","rating"].includes(i.type)){const t=e.querySelector(`[name="${l}"]:checked`);c=t?"rating"===i.type?+t.value:t.value:null}else if("number"===i.type){const t=e.querySelector(`[name="${l}"]`).value;c=""===t?null:Number(t)}else if("gps"===i.type){const t=e.querySelector(`[name="${l}"]`).value;c=t?JSON.parse(t):null}else c=e.querySelector(`[name="${l}"]`).value.trim()||null;let d="";i.required&&h(c)?d="Réponse obligatoire":"number"===i.type&&null!=c&&(Number.isNaN(c)?d="Nombre invalide":null!=i.min&&c<i.min?d=`Valeur minimale : ${i.min}`:null!=i.max&&c>i.max&&(d=`Valeur maximale : ${i.max}`)),d&&n&&(e.classList.add("err"),e.querySelector(".qerr").textContent=d,a.push({el:e,msg:`${i.label.slice(0,40)} : ${d}`})),h(c)||"number"==typeof c&&Number.isNaN(c)||(s[i.id]=c)}return{ans:s,errors:a}}const V=e=>Array.isArray(e)?e.join(", "):null==e?"":"object"==typeof e&&"lat"in e?`${e.lat}, ${e.lon}`:String(e),G=e=>"string"==typeof e&&e.startsWith("photo:")?e.slice(6):"";function Q(e,t,n){if(!n.length)return void(e.innerHTML=`<div class="card empty">Aucune réponse pour l’instant.<br><a href="#/resultats/${t.id}/partager">Partage ton formulaire</a> pour commencer la collecte.</div>`);const a=n.slice().reverse();e.innerHTML=`<div class="tw"><table><thead><tr><th>Date</th>${t.settings?.askEnumerator?"<th>Enquêteur</th>":""}${t.questions.map(e=>`<th title="${l(e.label)}">${l(e.code)}</th>`).join("")}<th></th></tr></thead><tbody>\n    ${a.map(e=>`<tr><td style="white-space:nowrap">${d(e.client_created_at||e.created_at)}</td>${t.settings?.askEnumerator?`<td>${l(e.enumerator)}</td>`:""}${t.questions.map(t=>{const n=e.answers?.[t.id];return`<td>${"photo"===t.type&&G(n)?`<span data-photo="${l(G(n))}">📷</span>`:l(V(n))}</td>`}).join("")}\n    <td><button class="g d" data-s="${e.id}" title="Supprimer">✕</button></td></tr>`).join("")}</tbody></table></div>\n    <p class="muted small">Survole un code de colonne pour voir l’intitulé complet. Les intitulés figurent aussi dans le dictionnaire des variables (onglet Exporter).</p>`,r("[data-s]",e).forEach(a=>a.onclick=async()=>{if(!await f("Supprimer cette réponse ?","Supprimer"))return;const{error:i}=await s.from("submissions").delete().eq("id",a.dataset.s);if(i)return g($(i));n.splice(n.findIndex(e=>e.id===a.dataset.s),1),Q(e,t,n),g("Réponse supprimée")}),async function(e){const t=r("[data-photo]",e);if(!t.length)return;const{data:n}=await s.storage.from("photos").createSignedUrls(t.map(e=>e.dataset.photo),3600);(n||[]).forEach((e,n)=>{e?.signedUrl&&t[n]&&(t[n].innerHTML=`<a href="${l(e.signedUrl)}" target="_blank" rel="noopener"><img src="${l(e.signedUrl)}" alt="photo" style="width:56px;height:56px;object-fit:cover;border-radius:6px"></a>`)})}(e)}function W(e,t,{useCodes:n,withEnum:s}){const a=e=>(e=String(e??""),/[";\n\r]/.test(e)?'"'+e.replace(/"/g,'""')+'"':e),i={lat:"latitude",lon:"longitude",acc:"précision m"},r=e.flatMap(e=>"gps"===e.type?["lat","lon","acc"].map(t=>[t,e]):[[null,e]]);return"\ufeff"+[["id","date",...s?["enqueteur"]:[],...r.map(([e,t])=>e?n?`${t.code}_${e}`:`${t.label} (${i[e]})`:n?t.code:t.label)],...t.map(e=>[e.id,new Date(e.client_created_at||e.created_at).toISOString(),...s?[e.enumerator||""]:[],...r.map(([t,n])=>{const s=e.answers?.[n.id];return t?s&&null!=s[t]?String(s[t]).replace(".",","):"":Array.isArray(s)?s.join(" | "):"number"==typeof s?String(s).replace(".",","):G(s)||(s??"")})])].map(e=>e.map(a).join(";")).join("\r\n")}function Y(e,t,n,s){const a=y(t.title);e.innerHTML=`<div class="card"><h2>Exporter ${n.length} réponse(s)</h2>\n    <p class="muted">Séparateur point-virgule et virgule décimale, prêts pour Excel en français. Dans R : <code>read.csv2("fichier.csv", encoding = "UTF-8")</code>.</p>\n    <div class="grid2">\n      <button class="p" data-x="labels">CSV avec intitulés (Excel)</button>\n      <button data-x="codes">CSV avec codes (R, SPSS, Stata)</button>\n      <button data-x="dict">Dictionnaire des variables</button>\n      <button data-x="json">JSON (développeurs)</button>\n      ${t.questions.some(e=>"gps"===e.type)?'<button data-x="geo">GeoJSON (QGIS, ArcGIS)</button>':""}\n    </div></div>`,r("[data-x]",e).forEach(e=>e.onclick=()=>{const i=e.dataset.x,r={withEnum:s&&!!t.settings?.askEnumerator};"labels"===i&&b(a+".csv",W(t.questions,n,{...r,useCodes:!1})),"codes"===i&&b(a+"_codes.csv",W(t.questions,n,{...r,useCodes:!0})),"dict"===i&&b(a+"_dictionnaire.csv",function(e){const t=e=>(e=String(e??""),/[";\n\r]/.test(e)?'"'+e.replace(/"/g,'""')+'"':e);return"\ufeff"+[["code","intitule","type","modalites","obligatoire","condition_affichage"],...e.map(t=>{const n=e.find(e=>e.id===t.showIf?.q);return[t.code,t.label,x[t.type],k(t).join(" | "),t.required?"oui":"non",n?`${n.code} ${L[t.showIf.op]}${"answered"===t.showIf.op?"":" "+t.showIf.value}`:""]})].map(e=>e.map(t).join(";")).join("\r\n")}(t.questions)),"json"===i&&b(a+".json",function(e,t){return JSON.stringify(t.map(t=>{const n={id:t.id,date:t.client_created_at||t.created_at};return e.forEach(e=>n[e.code]=t.answers?.[e.id]??null),n}),null,2)}(t.questions,n),"application/json"),"geo"===i&&b(a+".geojson",function(e,t){const n=e.find(e=>"gps"===e.type);return JSON.stringify({type:"FeatureCollection",features:t.filter(e=>"number"==typeof e.answers?.[n.id]?.lat).map(t=>{const s=t.answers[n.id],a={id:t.id,date:t.client_created_at||t.created_at,precision_m:s.acc};return e.forEach(e=>{if("gps"!==e.type&&"photo"!==e.type){const n=t.answers?.[e.id];a[e.code]=Array.isArray(n)?n.join(" | "):n??null}}),{type:"Feature",geometry:{type:"Point",coordinates:[s.lon,s.lat]},properties:a}})},null,1)}(t.questions,n),"application/geo+json")})}function Z(e,t,n=""){const s=Math.max(1,...e.map(e=>e[1]));return e.map(([e,n])=>`<div class="bar"><span class="l" title="${l(e)}">${l(e)}</span><span class="t"><i style="width:${n/s*100}%"></i></span><span class="v">${n} · ${t?Math.round(n/t*100):0} %</span></div>`).join("")+n}function K(e){const t=e.slice().sort((e,t)=>e-t),n=t.length,s=t.reduce((e,t)=>e+t,0),a=s/n,i=e=>{const s=(n-1)*e,a=Math.floor(s),i=Math.ceil(s);return t[a]+(t[i]-t[a])*(s-a)},r=n>1?Math.sqrt(t.reduce((e,t)=>e+(t-a)**2,0)/(n-1)):0;return{n:n,sum:s,mean:a,sd:r,min:t[0],max:t[n-1],med:i(.5),q1:i(.25),q3:i(.75),a:t}}function X(e,t){const n=new Map(k(e).map(e=>[e,0]));return t.flat().forEach(e=>{const t=String(e);n.set(t,(n.get(t)||0)+1)}),[...n.entries()]}function ee(e,t,n){if(!n.length)return void(e.innerHTML='<div class="card empty">Pas encore de données à analyser.</div>');const s=n.map(e=>e.client_created_at||e.created_at),o=new Map;s.forEach(e=>{const t=u(e);o.set(t,(o.get(t)||0)+1)});const p=new Set(n.map(e=>e.enumerator).filter(Boolean));let m=`<div class="kpis"><div class="kpi"><span class="muted">Réponses</span><b>${n.length}</b></div>\n    <div class="kpi"><span class="muted">Jours de collecte</span><b>${o.size}</b></div>\n    ${p.size?`<div class="kpi"><span class="muted">Enquêteurs</span><b>${p.size}</b></div>`:""}\n    <div class="kpi"><span class="muted">Dernière réponse</span><b style="font-size:15px">${d(s[s.length-1])}</b></div></div>\n    <div class="card"><h3>Rythme de collecte</h3>${Z([...o.entries()].slice(-12),n.length)}</div>`;t.forEach(e=>{const t=n.filter(t=>E(e,t.answers||{})).length,s=n.map(t=>t.answers?.[e.id]).filter(e=>!h(e));if(m+=`<div class="card"><div class="row" style="margin-bottom:4px"><h3 style="margin:0;flex:1">${l(e.code)}. ${l(e.label)}</h3><span class="chip">${x[e.type]}</span></div>\n      <p class="muted" style="margin:0 0 10px">${s.length} réponse(s)${e.showIf?` sur ${t} concerné(s)`:` sur ${n.length}`}</p>`,s.length)if("number"===e.type||"rating"===e.type){const t=K(s.map(Number).filter(e=>!Number.isNaN(e)));m+=`<div class="stats"><div>Moyenne<b>${c(t.mean)}</b></div><div>Médiane<b>${c(t.med)}</b></div><div>Écart-type<b>${c(t.sd)}</b></div>\n          <div>Q1 – Q3<b>${c(t.q1)} – ${c(t.q3)}</b></div><div>Min – Max<b>${c(t.min)} – ${c(t.max)}</b></div>${"number"===e.type?`<div>Total<b>${c(t.sum)}</b></div>`:""}</div>`,m+="rating"===e.type?Z(X(e,s),s.length):Z(function(e){const t=e[0],n=e[e.length-1];if(t===n)return[[c(t),e.length]];const s=Math.min(7,Math.max(3,Math.ceil(Math.log2(e.length)+1))),a=(n-t)/s,i=Array(s).fill(0);return e.forEach(e=>i[Math.min(s-1,Math.floor((e-t)/a))]++),i.map((e,n)=>[`${c(t+n*a)} – ${c(t+(n+1)*a)}`,e])}(t.a),s.length)}else if("single"===e.type||"yesno"===e.type)m+=Z(X(e,s).sort((e,t)=>t[1]-e[1]),s.length);else if("multi"===e.type)m+=Z(X(e,s).sort((e,t)=>t[1]-e[1]),s.length,'<p class="muted small" style="margin:6px 0 0">% des répondants (plusieurs réponses possibles).</p>');else if("gps"===e.type){const t=s.map(e=>e.acc).filter(Number.isFinite);m+=`<div class="stats"><div>Points<b>${s.length}</b></div>${t.length?`<div>Précision médiane<b>± ${c(K(t).med)} m</b></div>`:""}</div><div data-gps="${e.id}" style="height:320px;border-radius:10px;overflow:hidden;background:#efebe1"></div>`}else if("photo"===e.type)m+=`<p class="muted" style="margin:0">${s.length} photo(s), visibles dans l’onglet Réponses.</p>`;else if("date"===e.type){const e=s.slice().sort();m+=`<div class="stats"><div>Plus ancienne<b>${l(e[0])}</b></div><div>Plus récente<b>${l(e[e.length-1])}</b></div></div>`}else m+=s.slice(-5).reverse().map(e=>`<div class="q" style="margin-bottom:6px;padding:8px 10px">${l(e)}</div>`).join("")+(s.length>5?`<p class="muted small">… et ${s.length-5} autre(s) dans le tableau.</p>`:"");m+="</div>"});const v=t.filter(e=>M.includes(e.type)),g=t.filter(e=>"number"===e.type);if(v.length&&(m+=`<div class="card"><h3>Tableau croisé</h3><p class="muted" style="margin-top:0">Croise une variable catégorielle avec une autre (effectifs et % en ligne, test du khi²) ou avec un nombre (moyenne par groupe).</p>\n    <div class="row"><select id="xa">${v.map(e=>`<option value="${e.id}">${l(e.code)} – ${l(e.label.slice(0,45))}</option>`).join("")}</select><span class="muted">×</span><select id="xb"></select></div><div id="xt" style="margin-top:12px"></div></div>`),e.innerHTML=m,async function(e,t){for(const n of r("[data-gps]",e)){const e=t.map(e=>e.answers?.[n.dataset.gps]).filter(e=>e&&"number"==typeof e.lat);if(e.length)if(a)n.style.height="auto",n.innerHTML=`<div class="muted small" style="padding:10px">La carte s’affiche dans la version en ligne. Points : ${e.slice(0,8).map(e=>`${e.lat}, ${e.lon}`).join(" · ")}${e.length>8?"…":""}</div>`;else try{const t=await te();if(!n.isConnected)return;const s=t.map(n,{scrollWheelZoom:!1});t.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(s);const a=t.featureGroup(e.map(e=>t.circleMarker([e.lat,e.lon],{radius:6,color:"#0f6b4f",weight:2,fillColor:"#d98e2b",fillOpacity:.85}).bindTooltip(`± ${e.acc} m`))).addTo(s);s.fitBounds(a.getBounds().pad(.25),{maxZoom:15})}catch{n.innerHTML='<div class="empty">Carte indisponible hors ligne.</div>'}}}(e,n),!v.length)return;const f=()=>{const e=i("#xa").value;i("#xb").innerHTML=[...v,...g].filter(t=>t.id!==e).map(e=>`<option value="${e.id}">${l(e.code)} – ${l(e.label.slice(0,45))}</option>`).join("")},b=()=>function(e,t,n,s){if(!t||!n)return void(e.innerHTML='<p class="muted">Ajoute une deuxième variable pour croiser.</p>');const a=k(t);if("number"===n.type)return void(e.innerHTML=`<div class="tw"><table class="xt"><thead><tr><th>${l(t.code)}</th><th>n</th><th>Moyenne ${l(n.code)}</th><th>Médiane</th><th>Écart-type</th></tr></thead><tbody>${a.map(e=>{const a=s.filter(n=>String(n.answers?.[t.id])===e).map(e=>e.answers?.[n.id]).filter(e=>"number"==typeof e);if(!a.length)return`<tr><td>${l(e)}</td><td>0</td><td>–</td><td>–</td><td>–</td></tr>`;const i=K(a);return`<tr><td>${l(e)}</td><td>${i.n}</td><td>${c(i.mean)}</td><td>${c(i.med)}</td><td>${c(i.sd)}</td></tr>`}).join("")}</tbody></table></div>`);const i=k(n),r=a.map(e=>i.map(a=>s.filter(s=>String(s.answers?.[t.id])===e&&(Array.isArray(s.answers?.[n.id])?s.answers[n.id].includes(a):String(s.answers?.[n.id])===a)).length)),o=r.map(e=>e.reduce((e,t)=>e+t,0)),d=i.map((e,t)=>r.reduce((e,n)=>e+n[t],0)),u=o.reduce((e,t)=>e+t,0);let p=0,m=0,h=0;r.forEach((e,t)=>e.forEach((e,n)=>{const s=o[t]*d[n]/(u||1);o[t]&&d[n]&&(h++,p+=(e-s)**2/s,s<5&&m++)}));const v=(o.filter(Boolean).length-1)*(d.filter(Boolean).length-1),g=v>0&&"multi"!==n.type?(f=p,b=v,1-function(e,t){if(t<=0)return 0;const n=function(e){const t=[76.18009172947146,-86.50532032941678,24.01409824083091,-1.231739572450155,.001208650973866179,-5395239384953e-18];let n=e,s=e,a=n+5.5;a-=(n+.5)*Math.log(a);let i=1.000000000190015;for(const e of t)i+=e/++s;return-a+Math.log(2.5066282746310007*i/n)}(e);if(t<e+1){let s=1/e,a=s,i=e;for(let e=0;e<200&&(i++,a*=t/i,s+=a,!(Math.abs(a)<1e-12*Math.abs(s)));e++);return s*Math.exp(-t+e*Math.log(t)-n)}let s=t+1-e,a=1e300,i=1/s,r=i;for(let t=1;t<200;t++){const n=-t*(t-e);s+=2,i=n*i+s,Math.abs(i)<1e-300&&(i=1e-300),a=s+n/a,Math.abs(a)<1e-300&&(a=1e-300),i=1/i;const o=i*a;if(r*=o,Math.abs(o-1)<1e-12)break}return 1-Math.exp(-t+e*Math.log(t)-n)*r}(b/2,f/2)):null;var f,b;e.innerHTML=`<div class="tw"><table class="xt"><thead><tr><th>${l(t.code)} \\ ${l(n.code)}</th>${i.map(e=>`<th>${l(e)}</th>`).join("")}<th>Total</th></tr></thead><tbody>\n    ${r.map((e,t)=>`<tr><td>${l(a[t])}</td>${e.map(e=>`<td>${e}${o[t]?`<div class="muted small">${Math.round(e/o[t]*100)} %</div>`:""}</td>`).join("")}<td><b>${o[t]}</b></td></tr>`).join("")}\n    <tr><td><b>Total</b></td>${d.map(e=>`<td><b>${e}</b></td>`).join("")}<td><b>${u}</b></td></tr></tbody></table></div>\n    ${null!=g?`<p class="muted small">Khi² = ${c(p)} ; ddl = ${v} ; p ${g<.001?"< 0,001":"= "+c(g)} → ${g<.05?"<b>association significative au seuil de 5 %</b>":"pas d’association significative au seuil de 5 %"}.${m/(h||1)>.2?" ⚠ Plus de 20 % des effectifs attendus sont inférieurs à 5 : résultat à interpréter avec prudence.":""}</p>`:""}`}(i("#xt"),t.find(e=>e.id===i("#xa").value),t.find(e=>e.id===i("#xb").value),n);i("#xa").onchange=()=>{f(),b()},i("#xb").onchange=b,f(),b()}function te(){return window.L?Promise.resolve(window.L):new Promise((e,t)=>{const n=document.createElement("link");n.rel="stylesheet",n.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",document.head.appendChild(n);const s=document.createElement("script");s.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",s.onload=()=>e(window.L),s.onerror=t,document.head.appendChild(s)})}const ne=["il est important de noter","il convient de noter","il est essentiel","en conclusion","en somme","en résumé","en définitive","joue un rôle crucial","joue un rôle clé","rôle essentiel","un enjeu majeur","force est de constater","dans un monde","à l’ère","à l'ère","par ailleurs","en outre","de plus,","tout d’abord","tout d'abord","ainsi,","néanmoins","il est crucial","permet de favoriser","contribue à","furthermore","moreover","in conclusion","it is important to note","plays a crucial role","delve","additionally","overall,","in summary"],se=/[\p{L}’'-]+/gu;function ae(e){const t=String(e||"").trim(),n=t.toLowerCase(),s=n.match(se)||[],a=t.split(/(?<=[.!?…])\s+/).filter(e=>(e.match(se)||[]).length>0),i=a.map(e=>(e.match(se)||[]).length),r=i.reduce((e,t)=>e+t,0)/(i.length||1),o=i.length>=3?Math.sqrt(i.reduce((e,t)=>e+(t-r)**2,0)/i.length)/(r||1):null,l=ne.filter(e=>n.includes(e)),c=s.length?new Set(s).size/s.length:0,d=[];let u=0;const p=(e,t)=>{u+=e,d.push(t)};return s.length>=30&&(l.length&&p(Math.min(36,12*l.length),`connecteurs et formules types : ${l.slice(0,4).join(", ")}`),null!==o&&o<.35&&p(18,"phrases de longueur très régulière"),r>22&&p(10,"phrases longues et denses"),/[—–]/.test(t)&&p(8,"tirets longs"),/^\s*([-•*]|\d+[.)])\s/m.test(t)&&p(10,"mise en forme en liste"),/^[A-ZÀ-Ý«"]/.test(t)&&/[.!?…»"]$/.test(t)&&!/\s[,.;:!?](?!\s)|[a-zà-ÿ]\.[a-zà-ÿ]/.test(t)&&p(8,"typographie impeccable"),s.length>=80&&c>.62&&p(10,"vocabulaire très varié")),{score:Math.min(100,u),signals:d,words:s.length,sentences:a.length,mean:r,ttr:c}}const ie=e=>{const t=String(e).toLowerCase().match(/[\p{L}\d]+/gu)||[],n=new Set;for(let e=0;e+2<t.length;e++)n.add(t[e]+" "+t[e+1]+" "+t[e+2]);return n},re=(e,t)=>{if(!e.size||!t.size)return 0;let n=0;for(const s of e)t.has(s)&&n++;return n/(e.size+t.size-n)},oe=(e,t)=>{const n=Math.PI/180,s=(t.lat-e.lat)*n,a=(t.lon-e.lon)*n,i=Math.sin(s/2)**2+Math.cos(e.lat*n)*Math.cos(t.lat*n)*Math.sin(a/2)**2;return 12742e3*Math.asin(Math.sqrt(i))};function le(e){if(e.length<6)return()=>!1;const t=K(e).med,n=K(e.map(e=>Math.abs(e-t))).med;return e=>n>0&&Math.abs(.6745*(e-t)/n)>3.5}const ce={ok:["Fiable",""],check:["À vérifier","w"],bad:["Suspecte","d"]};function de(e){return`<a class="card dataset" href="#/donnees/${e.id}"><div class="row"><b style="flex:1">${l(e.title)}</b><span class="chip">${e.n} réponse${e.n>1?"s":""}</span></div>\n    <div class="muted">${l([e.author_name,e.institution].filter(Boolean).join(" — ")||"Auteur non renseigné")}</div>\n    <div class="row" style="margin-top:6px">${e.discipline?`<span class="chip x">${l(e.discipline)}</span>`:""}${e.region?`<span class="chip x">📍 ${l(e.region)}</span>`:""}<span class="muted small sp">${(e.questions||[]).length} variables · ${u(e.updated_at)}</span></div></a>`}"serviceWorker"in navigator&&"https:"===location.protocol&&navigator.serviceWorker.register("sw.js").catch(()=>{}),(async()=>{if(s){const{data:e}=await s.auth.getSession();I=e.session,s.auth.onAuthStateChange((e,t)=>{const n=!!I;I=t,O(),"PASSWORD_RECOVERY"===e?async function(){o.innerHTML='<div class="card" style="max-width:440px;margin:20px auto"><h2>Nouveau mot de passe</h2><form id="np"><input type="password" name="p" minlength="8" required placeholder="8 caractères minimum"><button class="p big" style="width:100%;margin-top:12px">Enregistrer</button></form></div>',i("#np").onsubmit=async e=>{e.preventDefault();const{error:t}=await s.auth.updateUser({password:new FormData(e.target).get("p")});g(t?$(t):"Mot de passe modifié"),t||(location.hash="#/formulaires")}}():n===!!t||/^#\/f\//.test(location.hash)||z()})}if(a){const e=document.createElement("div");e.className="net",e.style.background="#8a5a12",e.textContent="Mode démonstration : les données restent sur cet appareil. Mets SamaCollect en ligne pour collecter à plusieurs.",i("#top").after(e)}H(),z(),A()})();
+const e = window.SAMA_CONFIG || {},
+  t = !(!e.supabaseUrl || !e.supabaseAnonKey),
+  {
+    createClient: n
+  } = t ? await (import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm")) : await (import("./demo.js")),
+  s = n(e.supabaseUrl, e.supabaseAnonKey),
+  a = !t,
+  i = (e, t = document) => t.querySelector(e),
+  r = (e, t = document) => [...t.querySelectorAll(e)],
+  o = i("#app"),
+  l = e => String(e ?? "").replace(/[&<>"']/g, e => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  } [e])),
+  c = e => Number(e).toLocaleString("fr-FR", {
+    maximumFractionDigits: 2
+  }),
+  d = e => e ? new Date(e).toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }) : "",
+  u = e => e ? new Date(e).toLocaleDateString("fr-FR") : "",
+  p = () => Math.random().toString(36).slice(2, 10),
+  m = {
+    get(e, t) {
+      try {
+        const n = localStorage.getItem("sama_" + e);
+        return n ? JSON.parse(n) : t
+      } catch {
+        return t
+      }
+    },
+    set(e, t) {
+      try {
+        localStorage.setItem("sama_" + e, JSON.stringify(t))
+      } catch {}
+    }
+  },
+  h = e => null == e || "" === e || Array.isArray(e) && !e.length,
+  v = () => location.href.split("#")[0];
+
+function g(e) {
+  const t = i("#toast");
+  t.textContent = e, t.classList.add("on"), clearTimeout(t._h), t._h = setTimeout(() => t.classList.remove("on"), 3e3)
+}
+
+function f(e, t = "Confirmer") {
+  return new Promise(n => {
+    const s = i("#modal");
+    i("#mmsg").textContent = e, i("#myes").textContent = t, s.classList.add("on"), i("#myes").onclick = () => {
+      s.classList.remove("on"), n(!0)
+    }, i("#mno").onclick = () => {
+      s.classList.remove("on"), n(!1)
+    }
+  })
+}
+async function b(e, t, n = "text/csv;charset=utf-8") {
+  const s = URL.createObjectURL(new Blob([t], {
+      type: n
+    })),
+    a = document.createElement("a");
+  a.href = s, a.download = e, document.body.appendChild(a), a.click(), setTimeout(() => {
+    URL.revokeObjectURL(s), a.remove()
+  }, 500)
+}
+const y = e => (e || "donnees").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "").slice(0, 50) || "donnees",
+  $ = e => e && (e.message || e.error_description) || "Erreur inconnue",
+  x = {
+    text: "Texte court",
+    long: "Texte long",
+    number: "Nombre",
+    single: "Choix unique",
+    multi: "Choix multiples",
+    yesno: "Oui / Non",
+    rating: "Échelle 1 à 5",
+    date: "Date",
+    gps: "Position GPS",
+    photo: "Photo"
+  },
+  w = e => ["text", "long", "gps", "photo"].includes(e),
+  q = e => "single" === e || "multi" === e,
+  M = ["single", "yesno", "rating"],
+  L = {
+    eq: "est égal à",
+    neq: "est différent de",
+    gt: "est supérieur à",
+    lt: "est inférieur à",
+    answered: "a une réponse"
+  };
+
+function k(e) {
+  return "yesno" === e.type ? ["Oui", "Non"] : "rating" === e.type ? ["1", "2", "3", "4", "5"] : e.options || []
+}
+
+function S(e) {
+  let t = 0;
+  return e.forEach(e => {
+    const n = parseInt(String(e.code || "").replace(/\D/g, ""), 10);
+    n > t && (t = n)
+  }), "q" + (t + 1)
+}
+
+function C(e, t = "single") {
+  return {
+    id: p(),
+    code: S(e),
+    label: "",
+    hint: "",
+    type: t,
+    required: !1,
+    personal: w(t),
+    options: [],
+    min: null,
+    max: null,
+    showIf: null
+  }
+}
+
+function E(e, t) {
+  const n = e.showIf;
+  if (!n || !n.q) return !0;
+  const s = t[n.q];
+  if ("answered" === n.op) return !h(s);
+  if (h(s)) return !1;
+  const a = Array.isArray(s) ? s.map(String).includes(String(n.value)) : String(s) === String(n.value);
+  return "eq" === n.op ? a : "neq" === n.op ? !a : "gt" === n.op ? Number(s) > Number(n.value) : "lt" !== n.op || Number(s) < Number(n.value)
+}
+const j = ["Bois de chauffe", "Charbon de bois", "Gaz butane", "Électricité", "Résidus agricoles / bouses"];
+// File d'attente hors ligne : IndexedDB (plusieurs centaines de Mo) au lieu de localStorage (5 Mo).
+const QDB = (() => {
+  let pr = null;
+  const open = () => pr || (pr = new Promise((res, rej) => {
+    const r = indexedDB.open("samacollect", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("kv");
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error)
+  }));
+  return {
+    async get(k) {
+      const db = await open();
+      return new Promise((res, rej) => {
+        const r = db.transaction("kv").objectStore("kv").get(k);
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error)
+      })
+    },
+    async set(k, v) {
+      const db = await open();
+      return new Promise((res, rej) => {
+        const tx = db.transaction("kv", "readwrite");
+        tx.objectStore("kv").put(v, k);
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+        tx.onabort = () => rej(tx.error)
+      })
+    }
+  }
+})();
+let SQ_Q = [],
+  SQ_REJ = [];
+const hasIDB = (() => {
+  try {
+    return !!window.indexedDB
+  } catch {
+    return !1
+  }
+})();
+async function loadQ() {
+  const old = m.get("queue", []),
+    oldR = m.get("rejected", []);
+  if (!hasIDB) return SQ_Q = old, void(SQ_REJ = oldR);
+  try {
+    SQ_Q = await QDB.get("queue") || [], SQ_REJ = await QDB.get("rejected") || [];
+    if (old.length || oldR.length) {
+      const ids = new Set(SQ_Q.map(e => e.id));
+      SQ_Q = SQ_Q.concat(old.filter(e => !ids.has(e.id))), SQ_REJ = SQ_REJ.concat(oldR);
+      await QDB.set("queue", SQ_Q), await QDB.set("rejected", SQ_REJ);
+      try {
+        localStorage.removeItem("sama_queue"), localStorage.removeItem("sama_rejected")
+      } catch {}
+    }
+  } catch {
+    SQ_Q = old, SQ_REJ = oldR
+  }
+}
+async function saveQ(k, v) {
+  if (hasIDB) try {
+    return void await QDB.set(k, v)
+  } catch (e) {
+    if (!(e && /quota/i.test(e.name + e.message))) {
+      localStorage.setItem("sama_" + k, JSON.stringify(v));
+      return
+    }
+    throw e
+  }
+  localStorage.setItem("sama_" + k, JSON.stringify(v))
+}
+const T = () => SQ_Q;
+async function setQ(v) {
+  await saveQ("queue", v), SQ_Q = v
+}
+let _ = !1;
+const isRej = e => /row-level security|violates|permission denied|not.?null|invalid input|volumineuse/i.test(e || "");
+async function A() {
+  if (!s || _ || !navigator.onLine) return;
+  const e = T().slice();
+  if (!e.length) return H();
+  _ = !0;
+  const done = new Set(),
+    rej = [];
+  for (const n of e) {
+    try {
+      await N(n)
+    } catch (t) {
+      isRej($(t)) && (rej.push({
+        ...n,
+        rejected_at: (new Date).toISOString(),
+        reason: $(t)
+      }), done.add(n.id));
+      continue
+    }
+    const {
+      error: t
+    } = await s.from("submissions").insert(n);
+    if (!t || "23505" === t.code) done.add(n.id);
+    else if (isRej(t.message)) rej.push({
+      ...n,
+      rejected_at: (new Date).toISOString(),
+      reason: t.message
+    }), done.add(n.id)
+  }
+  try {
+    if (rej.length) {
+      const v = SQ_REJ.concat(rej);
+      await saveQ("rejected", v), SQ_REJ = v
+    }
+    await setQ(T().filter(e => !done.has(e.id)))
+  } catch {}
+  _ = !1, H();
+  const ok = done.size - rej.length;
+  ok > 0 && g(ok + " réponse(s) synchronisée(s)"), rej.length && g(rej.length + " réponse(s) refusée(s) par le serveur : elles sont gardées sur ce téléphone, voir le bandeau.")
+}
+function dlRejected() {
+  b("reponses_refusees_" + (new Date).toISOString().slice(0, 10) + ".json", JSON.stringify(SQ_REJ, null, 2), "application/json")
+}
+async function N(e) {
+  for (const [t, n] of Object.entries(e.answers)) {
+    if ("string" != typeof n || !n.startsWith("data:image/")) continue;
+    const a = `${e.form_id}/${e.id}/${t}.jpg`,
+      i = await (await fetch(n)).blob(),
+      {
+        error: r
+      } = await s.storage.from("photos").upload(a, i, {
+        contentType: "image/jpeg",
+        upsert: !1
+      });
+    if (r && !/exist|duplicate/i.test(r.message || "") && "409" !== String(r.statusCode)) throw r;
+    e.answers[t] = "photo:" + a
+  }
+}
+
+async function allSubs(e) {
+  const out = [],
+    P = 1e3;
+  const base = () => s.from("submissions").select("*").eq("form_id", e).order("created_at", {
+    ascending: !0
+  });
+  if ("function" != typeof base().range) return await base();
+  for (let k = 0;; k += P) {
+    const {
+      data: d,
+      error: r
+    } = await base().order("id", {
+      ascending: !0
+    }).range(k, k + P - 1);
+    if (r) return {
+      data: null,
+      error: r
+    };
+    if (out.push(...d || []), !d || d.length < P) break
+  }
+  return {
+    data: out,
+    error: null
+  }
+}
+
+function H() {
+  const e = T().length,
+    t = i("#net"),
+    r = SQ_REJ.length;
+  let x = navigator.onLine ? e ? `${e} réponse(s) en attente d’envoi…` : "" : "Hors ligne — les réponses sont gardées sur ce téléphone" + (e ? ` (${e} en attente)` : "");
+  t.textContent = x;
+  if (r) {
+    const sp = document.createElement("div");
+    sp.innerHTML = `${r} réponse(s) refusée(s) par le serveur (formulaire clôturé ou supprimé). Elles ne sont pas perdues : <button class="g" id="dlRej" style="color:inherit;text-decoration:underline">télécharger le fichier</button> et transmettez-le au chercheur.`;
+    t.appendChild(sp), sp.querySelector("#dlRej").onclick = dlRejected
+  }
+  x || r ? t.classList.remove("hidden") : t.classList.add("hidden")
+}
+addEventListener("online", () => {
+  H(), A()
+}), addEventListener("offline", H);
+let I = null;
+const D = () => I?.user || null;
+
+function O() {
+  const e = location.hash,
+    t = (e, t, n) => `<a href="${e}" class="${n?"on":""}">${t}</a>`;
+  i("#topnav").innerHTML = /^#\/f\//.test(e) ? "" : t("#/donnees", "Données ouvertes", e.startsWith("#/donnees")) + t("#/verifier", "Détecteur IA", "#/verifier" === e) + (D() ? t("#/formulaires", "Mes formulaires", /formulaires|editer|resultats/.test(e)) + '<a href="#/deconnexion">Quitter</a>' : t("#/connexion", "Connexion", "#/connexion" === e))
+}
+const P = [
+  [/^#?\/?$/, async function(e) {
+    o.innerHTML = `\n  <section class="hero">\n    <h1>Collecter, analyser et partager les données de recherche au Sénégal</h1>\n    <p>Crée ton questionnaire en quelques minutes, collecte sur le terrain même sans réseau, obtiens tes statistiques instantanément — et rejoins la première base de données de recherche ouverte du Sénégal.</p>\n    <div class="row">\n      <a class="btn a big" href="${D()?"#/formulaires":"#/connexion"}">${D()?"Mes formulaires":"Commencer gratuitement"}</a>\n      <a class="btn big" style="background:transparent;color:#fff" href="#/donnees">Explorer les données</a>\n    </div>\n  </section>\n  <div class="feat">\n    <div class="card"><b>📶 Hors ligne</b><span class="muted">Les réponses sont gardées sur le téléphone et envoyées dès le retour du réseau.</span></div>\n    <div class="card"><b>🔗 Lien, WhatsApp, QR code</b><span class="muted">Les répondants n’ont besoin d’aucun compte ni d’aucune application.</span></div>\n    <div class="card"><b>🧠 Logique de recherche</b><span class="muted">Questions conditionnelles, contrôles de cohérence, codes de variables, dictionnaire.</span></div>\n    <div class="card"><b>📊 Analyse immédiate</b><span class="muted">Moyennes, médianes, répartitions, tableaux croisés, export CSV pour R, SPSS, Excel.</span></div>\n  </div>\n  <div class="card"><div class="row"><h2 style="margin:0">Dernières données ouvertes</h2><a class="sp" href="#/donnees">Tout voir →</a></div><div id="homeCat" style="margin-top:10px"><div class="muted">Chargement…</div></div></div>\n  <footer class="foot">SamaCollect — logiciel libre au service de la recherche sénégalaise.</footer>`;
+    const {
+      data: t,
+      error: n
+    } = await s.rpc("open_catalog");
+    if (!e()) return;
+    i("#homeCat").innerHTML = n ? '<div class="muted">Catalogue indisponible hors ligne.</div>' : t?.length ? t.slice(0, 3).map(de).join("") : '<div class="muted">Aucun jeu de données ouvert pour l’instant. Le tien peut être le premier !</div>'
+  }],
+  [/^#\/connexion$/, function() {
+    if (D()) return void(location.hash = "#/formulaires");
+    let e = "login";
+    const t = () => {
+      o.innerHTML = `<div class="card" style="max-width:440px;margin:20px auto">\n      <div class="tabs"><button data-m="login" class="${"login"===e?"on":""}">Connexion</button><button data-m="signup" class="${"signup"===e?"on":""}">Créer un compte</button></div>\n      <form id="authF">\n        ${"signup"===e?'<label class="f">Nom complet</label><input type="text" name="name" required autocomplete="name">':""}\n        <label class="f">E-mail</label><input type="email" name="email" required autocomplete="email">\n        <label class="f">Mot de passe</label><input type="password" name="password" required minlength="8" autocomplete="${"signup"===e?"new-password":"current-password"}">\n        <div id="authMsg"></div>\n        <button class="p big" style="width:100%;margin-top:14px">${"signup"===e?"Créer mon compte":"Se connecter"}</button>\n      </form>\n      ${"login"===e?'<p class="muted" style="text-align:center"><a href="#" id="forgot">Mot de passe oublié ?</a></p>':'<p class="muted small">Gratuit. Le compte sert uniquement à créer des formulaires ; les répondants n’en ont pas besoin.</p>'}\n    </div>`, r(".tabs button").forEach(n => n.onclick = () => {
+        e = n.dataset.m, t()
+      }), i("#forgot")?.addEventListener("click", async e => {
+        e.preventDefault();
+        const t = i("[name=email]").value.trim();
+        if (!t) return g("Saisis d’abord ton e-mail");
+        const {
+          error: n
+        } = await s.auth.resetPasswordForEmail(t, {
+          redirectTo: v()
+        });
+        g(n ? $(n) : "E-mail de réinitialisation envoyé")
+      }), i("#authF").onsubmit = async t => {
+        t.preventDefault();
+        const n = new FormData(t.target),
+          a = t.target.querySelector("button");
+        a.disabled = !0;
+        const r = n.get("email").trim(),
+          o = n.get("password");
+        let c;
+        if (c = "signup" === e ? await s.auth.signUp({
+            email: r,
+            password: o,
+            options: {
+              data: {
+                full_name: n.get("name").trim()
+              },
+              emailRedirectTo: v()
+            }
+          }) : await s.auth.signInWithPassword({
+            email: r,
+            password: o
+          }), a.disabled = !1, c.error) return void(i("#authMsg").innerHTML = `<div class="note" style="margin-top:12px">${l(function(e){const t=$(e);return/invalid login/i.test(t)?"E-mail ou mot de passe incorrect.":/not confirmed/i.test(t)?"Confirme d’abord ton adresse via le lien reçu par e-mail.":/already registered/i.test(t)?"Un compte existe déjà avec cet e-mail.":/rate limit/i.test(t)?"Trop de tentatives, réessaie dans quelques minutes.":t}(c.error))}</div>`);
+        if ("signup" === e && !c.data.session) return void(i("#authMsg").innerHTML = '<div class="ok" style="margin-top:12px">Compte créé. Ouvre le lien de confirmation reçu par e-mail, puis connecte-toi.</div>');
+        const d = m.get("after", "#/formulaires");
+        m.set("after", null), location.hash = d || "#/formulaires"
+      }
+    };
+    t()
+  }],
+  [/^#\/deconnexion$/, async () => {
+    await (s?.auth.signOut()), location.hash = "#/"
+  }],
+  [/^#\/formulaires$/, F(async function(e) {
+    o.innerHTML = '<div class="row" style="margin-bottom:14px"><h1 style="margin:0">Mes formulaires</h1><span class="sp"></span>\n    <button class="p" id="newF">+ Nouveau</button><button id="tplF">Modèle bois-énergie</button></div><div id="list"><div class="empty">Chargement…</div></div>';
+    const t = async e => {
+      const t = D().user_metadata?.full_name || "",
+        n = {
+          title: "Nouveau formulaire",
+          description: "",
+          questions: [C([], "text")],
+          settings: {
+            askEnumerator: !1
+          },
+          author_name: t,
+          ...e
+        },
+        {
+          data: a,
+          error: i
+        } = await s.from("forms").insert(n).select().single();
+      if (i) return g($(i));
+      location.hash = "#/editer/" + a.id
+    };
+    i("#newF").onclick = () => t({}), i("#tplF").onclick = () => t(function() {
+      const e = [],
+        t = t => {
+          const n = {
+            ...C(e, t.type),
+            ...t
+          };
+          return e.push(n), n
+        };
+      t({
+        label: "Commune / village",
+        type: "text",
+        required: !0,
+        personal: !1
+      }), t({
+        label: "Milieu de résidence",
+        type: "single",
+        required: !0,
+        options: ["Urbain", "Périurbain", "Rural"]
+      }), t({
+        label: "Taille du ménage (nombre de personnes)",
+        type: "number",
+        required: !0,
+        min: 1,
+        max: 60
+      });
+      const n = t({
+        label: "Principal combustible de cuisson",
+        type: "single",
+        required: !0,
+        options: j
+      });
+      t({
+        label: "Tous les combustibles utilisés",
+        type: "multi",
+        options: j
+      });
+      const s = t({
+        label: "Mode d'approvisionnement en bois",
+        type: "single",
+        options: ["Ramassage", "Achat", "Les deux"],
+        showIf: {
+          q: n.id,
+          op: "eq",
+          value: "Bois de chauffe"
+        }
+      });
+      return t({
+        label: "Distance jusqu’au lieu de ramassage (km)",
+        type: "number",
+        min: 0,
+        max: 50,
+        showIf: {
+          q: s.id,
+          op: "neq",
+          value: "Achat"
+        }
+      }), t({
+        label: "Dépense mensuelle en combustibles (FCFA)",
+        type: "number",
+        min: 0,
+        max: 5e5
+      }), t({
+        label: "Type de foyer utilisé",
+        type: "single",
+        options: ["Foyer traditionnel (3 pierres)", "Foyer amélioré", "Réchaud à gaz", "Autre"]
+      }), t({
+        label: "Constatez-vous une raréfaction du bois ces 5 dernières années ?",
+        type: "yesno"
+      }), t({
+        label: "Satisfaction quant à l'accès à l'énergie",
+        type: "rating",
+        hint: "1 = pas du tout satisfait, 5 = très satisfait"
+      }), t({
+        label: "Observations",
+        type: "long"
+      }), {
+        title: "Enquête ménages – bois-énergie (région de Thiès)",
+        description: "Usages, approvisionnement et dépenses en combustibles domestiques des ménages.",
+        discipline: "Environnement / énergie",
+        region: "Thiès",
+        questions: e,
+        settings: {
+          askEnumerator: !0
+        }
+      }
+    }());
+    const {
+      data: n,
+      error: a
+    } = await s.from("forms").select("*").eq("owner", D().id).order("updated_at", {
+      ascending: !1
+    });
+    if (!e()) return;
+    if (a) return void(i("#list").innerHTML = `<div class="card empty">${l($(a))}</div>`);
+    if (!n.length) return void(i("#list").innerHTML = '<div class="card empty">Tu n’as pas encore de formulaire.<br>Crée-en un, ou pars du modèle d’enquête bois-énergie.</div>');
+    i("#list").innerHTML = n.map(e => `<div class="card"><div class="row">\n      <div style="flex:1;min-width:200px"><b>${l(e.title)}</b> <span class="chip ${U[e.status][1]}">${U[e.status][0]}</span>${e.open_data?' <span class="chip">Données ouvertes</span>':""}\n      <div class="muted">${e.questions.length} questions · modifié le ${u(e.updated_at)}</div></div>\n      <a class="btn" href="#/editer/${e.id}">Modifier</a>\n      <a class="btn p" href="#/resultats/${e.id}">Résultats</a>\n      <a class="btn" href="#/resultats/${e.id}/partager">Partager</a>\n      <button class="g d" data-del="${e.id}" title="Supprimer">✕</button></div></div>`).join(""), r("[data-del]").forEach(e => e.onclick = async () => {
+      const t = n.find(t => t.id === e.dataset.del);
+      if (!await f(`Supprimer « ${t.title} » et toutes ses réponses ? Action définitive.`, "Supprimer")) return;
+      const {
+        error: a
+      } = await s.from("forms").delete().eq("id", t.id);
+      if (a) return g($(a));
+      g("Formulaire supprimé"), z()
+    })
+  })],
+  [/^#\/editer\/([\w-]+)$/, F(async function(e, t) {
+    o.innerHTML = '<div class="empty">Chargement…</div>';
+    const {
+      data: n,
+      error: a
+    } = await s.from("forms").select("*").eq("id", e).maybeSingle();
+    if (!t()) return;
+    if (a || !n || n.owner !== D().id) return void(o.innerHTML = '<div class="card empty">Formulaire introuvable.</div>');
+    const c = JSON.parse(JSON.stringify(n));
+    c.settings = c.settings || {};
+    let d = !1;
+    const u = () => {
+        d = !0, i("#saveState").textContent = "Modifications non enregistrées"
+      },
+      h = (e, t) => {
+        const n = c.questions.slice(0, t).filter(e => e.label.trim()),
+          s = e.showIf || {},
+          a = n.find(e => e.id === s.q),
+          i = s.q && "answered" !== s.op ? !a || !M.includes(a.type) && !q(a.type) || "eq" !== s.op && "neq" !== s.op ? `<input type="text" data-k="condv" value="${l(s.value??"")}" placeholder="valeur">` : `<select data-k="condv">${k(a).map(e=>`<option ${String(s.value)===e?"selected":""}>${l(e)}</option>`).join("")}</select>` : "";
+        return `<div class="q" data-i="${t}">\n      <div class="row"><span class="chip">${l(e.code)}</span>\n        <select data-k="type">${Object.entries(x).map(([t,n])=>`<option value="${t}" ${e.type===t?"selected":""}>${n}</option>`).join("")}</select>\n        <span class="sp"><button class="g" data-a="up" title="Monter">↑</button><button class="g" data-a="down" title="Descendre">↓</button><button class="g" data-a="dup" title="Dupliquer">⧉</button><button class="g d" data-a="del" title="Supprimer">✕</button></span></div>\n      <input type="text" data-k="label" placeholder="Intitulé de la question" value="${l(e.label)}" style="margin-top:8px">\n      <input type="text" data-k="hint" placeholder="Consigne ou précision (facultatif)" value="${l(e.hint)}" style="margin-top:6px">\n      ${q(e.type)?`<label class="f">Options (une par ligne)</label><textarea data-k="options">${l((e.options||[]).join("\n"))}</textarea>`:""}\n      ${"number"===e.type?`<div class="row" style="margin-top:8px"><span class="muted">Valeur min</span><input type="number" data-k="min" value="${e.min??""}"><span class="muted">max</span><input type="number" data-k="max" value="${e.max??""}"></div>`:""}\n      <div class="row" style="margin-top:8px;gap:16px">\n        <label class="row" style="gap:6px;font-size:13px"><input type="checkbox" data-k="required" ${e.required?"checked":""}> Obligatoire</label>\n        <label class="row" style="gap:6px;font-size:13px" title="Exclue des données ouvertes"><input type="checkbox" data-k="personal" ${e.personal?"checked":""}> Donnée personnelle</label>\n        <label class="row" style="gap:6px;font-size:13px">Code <input type="text" data-k="code" value="${l(e.code)}" style="width:80px;min-width:0;flex:none;padding:5px 8px"></label>\n      </div>\n      ${n.length?`<div class="cond row"><span>Afficher</span>\n        <select data-k="condq"><option value="">toujours</option>${n.map(e=>`<option value="${e.id}" ${s.q===e.id?"selected":""}>si ${l(e.code)} – ${l(e.label.slice(0,40))}</option>`).join("")}</select>\n        ${s.q?`<select data-k="condop">${Object.entries(L).map(([e,t])=>`<option value="${e}" ${s.op===e?"selected":""}>${t}</option>`).join("")}</select>${i}`:""}</div>`:""}\n    </div>`
+      },
+      v = () => {
+        o.innerHTML = `\n    <div class="row" style="margin-bottom:12px"><a href="#/formulaires">← Mes formulaires</a><span class="sp muted" id="saveState">${d?"Modifications non enregistrées":""}</span></div>\n    <div class="card">\n      <label class="f" style="margin-top:0">Titre du formulaire</label><input type="text" data-f="title" value="${l(c.title)}">\n      <label class="f">Présentation aux répondants</label><textarea data-f="description" placeholder="Objectif de l’étude, durée, confidentialité…">${l(c.description)}</textarea>\n      <label class="switch"><input type="checkbox" data-s="askEnumerator" ${c.settings.askEnumerator?"checked":""}><span><b>Mode enquêteur</b><br><span class="muted">Demande le nom de l’enquêteur et permet d’enchaîner les questionnaires sur le même téléphone.</span></span></label>\n    </div>\n    <h2>Questions (${c.questions.length})</h2>\n    <div id="qs">${c.questions.map(h).join("")}</div>\n    <div class="row" style="margin-bottom:16px"><button data-a="add">+ Ajouter une question</button></div>\n    <div class="card">\n      <h2>Fiche scientifique</h2>\n      <div class="grid2">\n        <div><label class="f">Auteur·e</label><input type="text" data-f="author_name" value="${l(c.author_name)}"></div>\n        <div><label class="f">Institution</label><input type="text" data-f="institution" value="${l(c.institution)}" placeholder="Ex. Université Iba Der Thiam de Thiès"></div>\n        <div><label class="f">Discipline</label><input type="text" data-f="discipline" value="${l(c.discipline)}"></div>\n        <div><label class="f">Zone d’étude</label><input type="text" data-f="region" value="${l(c.region)}" placeholder="Ex. Thiès"></div>\n      </div>\n      <label class="switch" style="margin-top:8px"><input type="checkbox" data-f="open_data" ${c.open_data?"checked":""}><span><b>Partager en données ouvertes (licence CC BY 4.0)</b><br><span class="muted">Les réponses deviennent consultables et téléchargeables par tous, <b>sans</b> les questions marquées « Donnée personnelle » ni le nom des enquêteurs. Ton nom est cité comme auteur·e.</span></span></label>\n    </div>\n    <div class="card"><div class="row">\n      <button class="p big" data-a="save">Enregistrer</button>\n      ${"published"!==c.status?'<button class="a big" data-a="publish">Publier et collecter</button>':'<button class="big" data-a="close">Clôturer la collecte</button>'}\n      ${"published"===c.status?`<a class="btn big" href="#/f/${c.id}" target="_blank" rel="noopener">Aperçu</a>`:'<button class="big" data-a="preview">Aperçu</button>'}\n    </div><p class="muted small" style="margin-bottom:0">Statut : ${U[c.status][0]}. Modifier un formulaire en cours de collecte est possible : les réponses existantes sont conservées.</p></div>`
+      };
+    v();
+    const b = async (e = {}) => {
+      Object.assign(c, e);
+      const t = c.questions.filter(e => e.label.trim()),
+        n = t.find(e => q(e.type) && (e.options || []).length < 2);
+      if (!c.title.trim()) return g("Donne un titre au formulaire"), !1;
+      if (!t.length) return g("Ajoute au moins une question"), !1;
+      if (n) return g(`${n.code} : indique au moins 2 options`), !1;
+      const a = t.map(e => e.code.trim()),
+        i = a.find((e, t) => !e || a.indexOf(e) !== t);
+      if (void 0 !== i) return g(`Code de variable vide ou en double : « ${i} »`), !1;
+      const r = new Set(t.map(e => e.id));
+      t.forEach(e => {
+        e.showIf && !r.has(e.showIf.q) && (e.showIf = null), q(e.type) || (e.options = [])
+      });
+      const o = {
+          title: c.title.trim(),
+          description: c.description.trim(),
+          questions: t,
+          settings: c.settings,
+          status: c.status,
+          open_data: !!c.open_data,
+          author_name: c.author_name.trim(),
+          institution: c.institution.trim(),
+          discipline: c.discipline.trim(),
+          region: c.region.trim()
+        },
+        {
+          error: l
+        } = await s.from("forms").update(o).eq("id", c.id);
+      return l ? (g($(l)), !1) : (c.questions = t, d = !1, g("Enregistré ✓"), !0)
+    };
+    o.addEventListener("input", E), o.addEventListener("change", E), o.addEventListener("click", j);
+    const warnUnload = e => {
+        d && (e.preventDefault(), e.returnValue = "")
+      },
+      navGuard = e => {
+        if (!d) return;
+        const t = e.target.closest("a[href^='#']");
+        !t || "_blank" === t.target || confirm("Tu as des modifications non enregistrées. Quitter quand même ?") || (e.preventDefault(), e.stopPropagation())
+      },
+      y = () => {
+        o.removeEventListener("input", E), o.removeEventListener("change", E), o.removeEventListener("click", j), removeEventListener("hashchange", y), removeEventListener("beforeunload", warnUnload), document.removeEventListener("click", navGuard, !0)
+      };
+    addEventListener("beforeunload", warnUnload), document.addEventListener("click", navGuard, !0);
+
+    function E(e) {
+      const t = e.target;
+      if (t.dataset.f) return c[t.dataset.f] = "checkbox" === t.type ? t.checked : t.value, u();
+      if (t.dataset.s) return c.settings[t.dataset.s] = t.checked, u();
+      const n = t.closest("[data-i]");
+      if (!n || !t.dataset.k) return;
+      const s = c.questions[+n.dataset.i],
+        a = t.dataset.k;
+      if (("input" !== e.type || "SELECT" !== t.tagName && "checkbox" !== t.type) && ("change" !== e.type || "checkbox" === t.type || "SELECT" === t.tagName))
+        if (u(), "label" === a || "hint" === a || "code" === a) s[a] = t.value;
+        else if ("options" === a) s.options = t.value.split("\n").map(e => e.trim()).filter(Boolean);
+      else if ("required" === a || "personal" === a) s[a] = t.checked;
+      else if ("min" === a || "max" === a) s[a] = "" === t.value ? null : Number(t.value);
+      else if ("type" === a) {
+        if ("draft" !== c.status && s.label.trim() && !confirm(`La collecte a déjà commencé. Changer le type de « ${s.code} » peut rendre ses réponses déjà reçues illisibles dans l’analyse. Continuer ?`)) return void v();
+        s.type = t.value, w(s.type) && (s.personal = !0), v()
+      }
+      else if ("condq" === a) {
+        if (s.showIf = t.value ? {
+            q: t.value,
+            op: "eq",
+            value: ""
+          } : null, s.showIf) {
+          const e = k(c.questions.find(e => e.id === t.value));
+          e.length ? s.showIf.value = e[0] : s.showIf.op = "answered"
+        }
+        v()
+      } else "condop" === a ? (s.showIf.op = t.value, v()) : "condv" === a && (s.showIf.value = t.value)
+    }
+    async function j(e) {
+      const t = e.target.closest("button");
+      if (!t || !t.dataset.a) return;
+      const s = t.dataset.a,
+        a = t.closest("[data-i]"),
+        i = a ? +a.dataset.i : -1,
+        o = c.questions;
+      if ("add" === s) return o.push(C(o)), u(), v(), void r("[data-k=label]").pop()?.focus();
+      if ("del" === s) {
+        const e = o[i];
+        if ("draft" !== c.status && e.label.trim() && !await f(`La collecte a déjà commencé. Supprimer « ${e.code} » rendra ses réponses déjà reçues invisibles dans l’analyse et l’export. Continuer ?`, "Supprimer")) return;
+        return o.splice(i, 1), o.forEach(t => {
+          t.showIf?.q === e.id && (t.showIf = null)
+        }), u(), void v()
+      }
+      if ("dup" === s) {
+        const e = JSON.parse(JSON.stringify(o[i]));
+        return e.id = p(), e.code = S(o), o.splice(i + 1, 0, e), u(), void v()
+      }
+      return "up" === s && i > 0 ? ([o[i - 1], o[i]] = [o[i], o[i - 1]], T(o), u(), void v()) : "down" === s && i < o.length - 1 ? ([o[i + 1], o[i]] = [o[i], o[i + 1]], T(o), u(), void v()) : "save" === s ? (t.disabled = !0, await b(), t.disabled = !1, void v()) : void("preview" !== s ? "publish" !== s ? "close" === s && await f("Clôturer la collecte ? Le lien n’acceptera plus de réponses (tu pourras republier).", "Clôturer") && await b({
+        status: "closed"
+      }) && v() : await b({
+        status: "published"
+      }) ? location.hash = "#/resultats/" + c.id + "/partager" : c.status = n.status : await b() && (m.set("preview_" + c.id, c), location.hash = "#/f/" + c.id))
+    }
+
+    function T(e) {
+      e.forEach((t, n) => {
+        t.showIf && !e.slice(0, n).some(e => e.id === t.showIf.q) && (t.showIf = null)
+      })
+    }
+    addEventListener("hashchange", y)
+  })],
+  [/^#\/resultats\/([\w-]+)(?:\/(\w+))?$/, F(async function(e, t = "reponses", n) {
+    o.innerHTML = '<div class="empty">Chargement…</div>';
+    const [{
+      data: a
+    }, {
+      data: u,
+      error: p
+    }] = await Promise.all([s.from("forms").select("*").eq("id", e).maybeSingle(), allSubs(e)]);
+    if (!n()) return;
+    if (!a || a.owner !== D().id) return void(o.innerHTML = '<div class="card empty">Formulaire introuvable.</div>');
+    if (p) return void(o.innerHTML = `<div class="card empty">${l($(p))}</div>`);
+    const m = {
+      reponses: "Réponses",
+      analyse: "Analyse",
+      qualite: "Qualité",
+      partager: "Partager",
+      exporter: "Exporter"
+    };
+    o.innerHTML = `<div class="row" style="margin-bottom:10px"><a href="#/formulaires">← Mes formulaires</a><span class="sp"></span><a href="#/editer/${a.id}">Modifier</a></div>\n    <h1>${l(a.title)} <span class="chip ${U[a.status][1]}">${U[a.status][0]}</span></h1>\n    <div class="tabs">${Object.entries(m).map(([e,n])=>`<button data-t="${e}" class="${e===t?"on":""}">${n}${"reponses"===e?` (${u.length})`:""}</button>`).join("")}</div>\n    <div id="pane"></div>`, r(".tabs button").forEach(e => e.onclick = () => {
+      history.replaceState(null, "", "#/resultats/" + a.id + "/" + e.dataset.t), r(".tabs button").forEach(t => t.classList.toggle("on", t === e)), x(e.dataset.t)
+    });
+    const f = i("#pane"),
+      x = e => "analyse" === e ? ee(f, a.questions, u) : "qualite" === e ? function(e, t, n) {
+        if (!n.length) return void(e.innerHTML = '<div class="card empty">Le contrôle qualité démarre dès la première réponse.</div>');
+        const s = function(e, t) {
+            const n = e.filter(e => "text" === e.type || "long" === e.type),
+              s = e.filter(e => "number" === e.type),
+              a = e.filter(e => "rating" === e.type),
+              i = e.filter(e => "gps" === e.type),
+              r = t.map(e => e.answers?._meta?.t).filter(Number.isFinite),
+              o = r.length >= 3 ? K(r).med : null,
+              l = Object.fromEntries(s.map(e => [e.id, le(t.map(t => t.answers?.[e.id]).filter(e => "number" == typeof e))])),
+              d = t.map(e => Object.fromEntries(n.map(t => {
+                const n = e.answers?.[t.id];
+                return [t.id, "string" == typeof n && n.split(/\s+/).length >= 20 ? ie(n) : null]
+              }))),
+              u = t.map(t => JSON.stringify(e.filter(e => "photo" !== e.type && "gps" !== e.type).map(e => t.answers?.[e.id] ?? null)));
+            return t.map((r, p) => {
+              const m = r.answers || {},
+                v = m._meta || {},
+                g = [],
+                f = (e, t, n) => g.push({
+                  pts: e,
+                  label: t,
+                  detail: n
+                });
+              u.some((e, t) => t !== p && e === u[p]) && f(35, "Doublon", "toutes les réponses sont identiques à une autre fiche");
+              const b = e.filter(e => !h(m[e.id])).length;
+              if (Number.isFinite(v.t) && b >= 3 && (o && v.t < .3 * o || v.t < 2 * b) && f(25, "Saisie trop rapide", `${v.t} s pour ${b} réponses${o?` (médiane : ${Math.round(o)} s)`:""}`), n.forEach(e => {
+                  const n = m[e.id];
+                  if ("string" != typeof n) return;
+                  const s = v.q?.[e.id];
+                  s && n.length >= 40 && s.p >= .6 * n.length ? f(30, "Texte collé", `${e.code} : ${s.p} caractères collés, ${s.k} frappes`) : s && n.length >= 80 && s.k < .3 * n.length && f(20, "Saisie sans frappe", `${e.code} : ${s.k} frappes pour ${n.length} caractères`);
+                  const a = ae(n);
+                  if (a.score >= 45 && f(Math.round(a.score / 3), "Style rédactionnel automatique", `${e.code} : ${a.signals.join(" ; ")}`), d[p][e.id])
+                    for (let n = 0; n < t.length; n++) {
+                      if (n === p || !d[n][e.id]) continue;
+                      const t = re(d[p][e.id], d[n][e.id]);
+                      if (t >= .5) {
+                        f(25, "Texte repris d’une autre fiche", `${e.code} : ${Math.round(100*t)} % de formulation commune`);
+                        break
+                      }
+                    }
+                }), a.length >= 3) {
+                const e = a.map(e => m[e.id]).filter(e => null != e);
+                e.length >= 3 && 1 === new Set(e).size && f(15, "Notes identiques partout", `note ${e[0]} sur ${e.length} échelles`)
+              }
+              s.forEach(e => {
+                const t = m[e.id];
+                "number" == typeof t && l[e.id](t) && f(10, "Valeur atypique", `${e.code} = ${c(t)}`)
+              });
+              const y = e.filter(e => E(e, m) && "photo" !== e.type && "gps" !== e.type);
+              if (y.length >= 5) {
+                const e = y.filter(e => h(m[e.id])).length / y.length;
+                e > .5 && f(15, "Nombreuses non-réponses", `${Math.round(100*e)} % des questions sans réponse`)
+              }
+              const $ = new Date(r.client_created_at || r.created_at).getHours();
+              $ < 5 && f(10, "Horaire inhabituel", `saisie à ${$} h`), i.forEach(e => {
+                const n = m[e.id];
+                if ("number" != typeof n?.lat) return;
+                n.acc > 100 && f(10, "Position GPS imprécise", `± ${n.acc} m`);
+                const s = t.filter((t, s) => s !== p && (t.enumerator || "") === (r.enumerator || "") && "number" == typeof t.answers?.[e.id]?.lat && oe(n, t.answers[e.id]) < 10).length;
+                s >= 2 && f(20, "Position répétée", `${s+1} fiches du même enquêteur au même endroit`)
+              });
+              const x = Math.max(0, 100 - g.reduce((e, t) => e + t.pts, 0));
+              return {
+                s: r,
+                score: x,
+                flags: g,
+                level: x >= 80 ? "ok" : x >= 55 ? "check" : "bad"
+              }
+            })
+          }(t.questions, n),
+          a = e => s.filter(t => t.level === e).length,
+          o = Math.round(s.reduce((e, t) => e + t.score, 0) / s.length),
+          u = {};
+        s.forEach(e => e.flags.forEach(e => u[e.label] = (u[e.label] || 0) + 1));
+        const p = {};
+        s.forEach(e => {
+          const t = e.s.enumerator || "—";
+          (p[t] = p[t] || []).push(e)
+        });
+        const m = Object.entries(p).sort((e, t) => t[1].length - e[1].length),
+          v = s.filter(e => "ok" !== e.level).sort((e, t) => e.score - t.score);
+        Object.fromEntries(t.questions.map(e => [e.id, e]));
+        e.innerHTML = `\n    <div class="kpis">\n      <div class="kpi"><span class="muted">Indice de fiabilité</span><b style="color:${o>=80?"var(--pri)":o>=55?"#b07316":"var(--danger)"}">${o} / 100</b></div>\n      <div class="kpi"><span class="muted">Fiches fiables</span><b>${a("ok")}</b></div>\n      <div class="kpi"><span class="muted">À vérifier</span><b>${a("check")}</b></div>\n      <div class="kpi"><span class="muted">Suspectes</span><b>${a("bad")}</b></div>\n    </div>\n    ${Object.keys(u).length?`<div class="card"><h3>Signaux détectés</h3>${Z(Object.entries(u).sort((e,t)=>t[1]-e[1]),s.length)}</div>`:'<div class="card ok" style="margin-bottom:14px">Aucun signal détecté : toutes les fiches sont fiables.</div>'}\n    ${m.length>1||m[0]&&"—"!==m[0][0]?`<div class="card"><h3>Suivi des enquêteurs</h3><div class="tw"><table><thead><tr><th>Enquêteur</th><th>Fiches</th><th>Indice moyen</th><th>À vérifier / suspectes</th><th>Durée médiane</th></tr></thead><tbody>\n      ${m.map(([e,t])=>{const n=t.map(e=>e.s.answers?._meta?.t).filter(Number.isFinite),s=Math.round(t.reduce((e,t)=>e+t.score,0)/t.length);return`<tr><td>${l(e)}</td><td>${t.length}</td><td><span class="chip ${s>=80?"":s>=55?"w":"d"}">${s}</span></td><td>${t.filter(e=>"ok"!==e.level).length}</td><td>${n.length?Math.round(K(n).med)+" s":"–"}</td></tr>`}).join("")}</tbody></table></div></div>`:""}\n    <div class="card"><div class="row" style="margin-bottom:8px"><h3 style="margin:0">Fiches à contrôler (${v.length})</h3><span class="sp"></span><button class="p" id="qcExport" ${a("ok")?"":"disabled"}>CSV des fiches fiables</button></div>\n      ${v.length?v.map((e,n)=>`<div class="q"><div class="row"><span class="chip ${ce[e.level][1]}">${e.score}/100 · ${ce[e.level][0]}</span><span class="muted small">${d(e.s.client_created_at||e.s.created_at)}${e.s.enumerator?" · "+l(e.s.enumerator):""}</span><span class="sp"></span><button class="g" data-open="${n}">Voir la fiche</button></div>\n        <ul style="margin:8px 0 0;padding-left:18px;font-size:13px">${e.flags.map(e=>`<li><b>${l(e.label)}</b> — ${l(e.detail)}</li>`).join("")}</ul>\n        <div class="hidden small" data-body="${n}" style="margin-top:8px">${t.questions.filter(t=>!h(e.s.answers?.[t.id])).map(t=>`<div><span class="muted">${l(t.code)} ${l(t.label)} :</span> ${"photo"===t.type?"📷":l(V(e.s.answers[t.id]))}</div>`).join("")}</div></div>`).join(""):'<p class="muted" style="margin:0">Rien à contrôler.</p>'}</div>\n    <p class="muted small">Méthode : indice calculé à partir du comportement de saisie (durée, collage, frappe), de la cohérence des réponses (doublons, valeurs atypiques, positions GPS, non-réponses) et de l’analyse du style des textes. Chaque fiche signalée se confirme par un rappel du répondant ou de l’enquêteur.</p>`, r("[data-open]", e).forEach(t => t.onclick = () => {
+          i(`[data-body="${t.dataset.open}"]`, e).classList.toggle("hidden")
+        }), i("#qcExport").onclick = () => b(y(t.title) + "_fiables.csv", W(t.questions, s.filter(e => "ok" === e.level).map(e => e.s), {
+          useCodes: !1,
+          withEnum: !!t.settings?.askEnumerator
+        }))
+      }(f, a, u) : "partager" === e ? function(e, t) {
+        const n = v() + "#/f/" + t.id;
+        if ("published" !== t.status) return void(e.innerHTML = `<div class="card"><div class="note">Ce formulaire n’est pas en collecte (${U[t.status][0].toLowerCase()}). Publie-le depuis l’éditeur pour activer le lien.</div><a class="btn p" href="#/editer/${t.id}">Ouvrir l’éditeur</a></div>`);
+        let s = "";
+        try {
+          const e = qrcode(0, "M");
+          e.addData(n), e.make(), s = e.createDataURL(8, 2)
+        } catch {}
+        const a = `📋 ${t.title}\n\nMerci de participer à cette enquête (quelques minutes) :\n${n}`;
+        e.innerHTML = `<div class="card"><h2>Lien de collecte</h2><div class="share" id="shareUrl">${l(n)}</div>\n    <div class="row" style="margin-top:10px">\n      <button class="p" id="cp">Copier le lien</button>\n      <a class="btn a" href="https://wa.me/?text=${encodeURIComponent(a)}" target="_blank" rel="noopener">Partager sur WhatsApp</a>\n      <a class="btn" href="${n}" target="_blank" rel="noopener">Ouvrir</a></div>\n    <p class="muted small">Les répondants n’ont besoin ni de compte ni d’application. Le questionnaire fonctionne hors ligne une fois ouvert.</p></div>\n    ${s?`<div class="card"><h2>QR code</h2><p class="muted">À imprimer sur tes fiches de terrain ou à afficher : il suffit de le scanner.</p><div class="qr"><img src="${s}" alt="QR code du questionnaire"></div>\n    <div class="row end" style="margin-top:8px"><a class="btn" href="${s}" download="qr_${y(t.title)}.gif">Télécharger le QR code</a></div></div>`:""}\n    <div class="card"><h2>Astuce terrain</h2><p class="muted" style="margin:0">Ouvre le lien une fois avec du réseau sur chaque téléphone d’enquêteur, puis « Ajouter à l’écran d’accueil ». Ensuite, la collecte marche toute la journée sans connexion.</p></div>`, i("#cp").onclick = async () => {
+          try {
+            await navigator.clipboard.writeText(n), g("Lien copié")
+          } catch {
+            g("Copie impossible : sélectionne le lien")
+          }
+        }
+      }(f, a) : "exporter" === e ? Y(f, a, u, !0) : void Q(f, a, u);
+    x(m[t] ? t : "reponses")
+  })],
+  [/^#\/f\/([\w-]+)$/, async function(e, t) {
+    o.innerHTML = '<div class="empty">Chargement du questionnaire…</div>';
+    let n = null;
+    const {
+      data: a,
+      error: r
+    } = await s.from("forms").select("id,title,description,questions,settings,status,author_name,institution").eq("id", e).maybeSingle();
+    if (!t()) return;
+    a ? (n = a, m.set("form_" + e, a)) : r && (n = m.get("form_" + e, null));
+    const c = n && "draft" !== n.status ? null : m.get("preview_" + e, null),
+      d = !(!c || !D() || c.owner !== D().id);
+    d && (n = c);
+    if (!n) return void(o.innerHTML = '<div class="card empty">Ce questionnaire est introuvable, pas encore publié, ou n’a jamais été ouvert sur cet appareil hors connexion.</div>');
+    if ("closed" === n.status) return void(o.innerHTML = `<div class="card empty"><h2>${l(n.title)}</h2>La collecte est terminée. Merci de votre intérêt.</div>`);
+    const u = !!n.settings?.askEnumerator;
+    let p = 0,
+      v = {};
+    const f = () => {
+      p = Date.now(), v = {}, o.innerHTML = `\n    ${d?'<div class="note">Aperçu : les réponses ne seront pas enregistrées. Publie le formulaire pour collecter.</div>':""}\n    <div class="card"><h1>${l(n.title)}</h1>${n.description?`<p style="white-space:pre-line">${l(n.description)}</p>`:""}\n      ${n.author_name||n.institution?`<p class="muted small" style="margin:0">${l([n.author_name,n.institution].filter(Boolean).join(" — "))}</p>`:""}\n      <div class="progress"><i id="prog" style="width:0"></i></div></div>\n    <form id="resp" novalidate>\n      ${u?`<div class="q"><label class="f" style="margin-top:0">Nom de l’enquêteur</label><input type="text" id="enumIn" value="${l(m.get("enum",""))}"></div>`:""}\n      ${n.questions.map(B).join("")}\n      <button class="p big" style="width:100%">Envoyer mes réponses</button>\n    </form>\n    <footer class="foot">Propulsé par <a href="#/">SamaCollect</a></footer>`;
+      const e = i("#resp");
+      e.addEventListener("input", a), e.addEventListener("change", a), a();
+      const t = e => e?.name?.startsWith("q_") ? e.name.slice(2) : null,
+        s = e => v[e] = v[e] || {
+          k: 0,
+          p: 0
+        };
+
+      function a() {
+        const {
+          ans: t
+        } = J(n, e, !1), s = n.questions.filter(e => !i(`[data-qid="${e.id}"]`).classList.contains("hidden"));
+        i("#prog").style.width = (s.length ? s.filter(e => !h(t[e.id])).length / s.length * 100 : 0) + "%"
+      }
+      e.addEventListener("keydown", e => {
+        const n = t(e.target);
+        n && 1 === e.key.length && s(n).k++
+      }), e.addEventListener("paste", e => {
+        const n = t(e.target);
+        n && (s(n).p += (e.clipboardData?.getData("text") || "").length)
+      }), e.addEventListener("click", e => {
+        const t = e.target.closest(".gpsbtn");
+        if (!t) return;
+        const n = t.closest(".q");
+        if (!navigator.geolocation) return g("Ce téléphone ne donne pas accès au GPS");
+        t.disabled = !0, t.textContent = "📍 Localisation en cours…", navigator.geolocation.getCurrentPosition(e => {
+          const s = {
+            lat: +e.coords.latitude.toFixed(6),
+            lon: +e.coords.longitude.toFixed(6),
+            acc: Math.round(e.coords.accuracy)
+          };
+          n.querySelector("input[type=hidden]").value = JSON.stringify(s), n.querySelector(".gpsval").textContent = `${s.lat}, ${s.lon} — précision ± ${s.acc} m`, t.disabled = !1, t.textContent = "📍 Mettre à jour la position", a()
+        }, e => {
+          t.disabled = !1, t.textContent = "📍 Enregistrer la position", g(1 === e.code ? "Autorise l’accès à la position dans le navigateur" : "Position introuvable : réessaie à découvert")
+        }, {
+          enableHighAccuracy: !0,
+          timeout: 3e4,
+          maximumAge: 0
+        })
+      }), e.addEventListener("change", async e => {
+        if (!e.target.classList.contains("photoin")) return;
+        const t = e.target.files[0],
+          n = e.target.closest(".q");
+        if (t) try {
+          const e = await async function(e, t = 1280, n = .65) {
+            let s = await createImageBitmap(e).catch(() => null);
+            s || (s = await new Promise((t, n) => {
+              const s = new Image;
+              s.onload = () => t(s), s.onerror = n, s.src = URL.createObjectURL(e)
+            }));
+            const a = Math.min(1, t / Math.max(s.width, s.height)),
+              i = document.createElement("canvas");
+            return i.width = Math.round(s.width * a), i.height = Math.round(s.height * a), i.getContext("2d").drawImage(s, 0, 0, i.width, i.height), i.toDataURL("image/jpeg", n)
+          }(t);
+          n.querySelector("input[type=hidden]").value = e;
+          const s = n.querySelector(".photoprev");
+          s.src = e, s.classList.remove("hidden"), a()
+        } catch {
+          g("Image illisible")
+        }
+      }), e.onsubmit = async t => {
+        t.preventDefault();
+        const {
+          ans: s,
+          errors: a
+        } = J(n, e, !0);
+        if (a.length) return g(a[0].msg), void a[0].el.scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
+        if (d) return void g("Aperçu : réponses valides ✓ (non enregistrées)");
+        const r = {};
+        n.questions.forEach(e => {
+          "text" !== e.type && "long" !== e.type || "string" != typeof s[e.id] || !v[e.id] || (r[e.id] = v[e.id])
+        }), s._meta = {
+          t: Math.round((Date.now() - p) / 1e3),
+          q: r
+        };
+        const l = u ? i("#enumIn").value.trim() : "";
+        u && m.set("enum", l);
+        const c = {
+            id: crypto.randomUUID ? crypto.randomUUID() : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, e => {
+              const t = 16 * Math.random() | 0;
+              return ("x" === e ? t : 3 & t | 8).toString(16)
+            }),
+            form_id: n.id,
+            answers: s,
+            enumerator: l,
+            client_created_at: (new Date).toISOString()
+          },
+          h = T().concat([c]);
+        try {
+          await setQ(h)
+        } catch {
+          return void g("Mémoire du téléphone pleine : reconnecte-toi au réseau pour envoyer les réponses en attente")
+        }
+        H(), await A();
+        const b = T().some(e => e.id === c.id);
+        o.innerHTML = `<div class="card" style="text-align:center;padding:36px 16px"><div style="font-size:44px">✓</div><h2>Merci, vos réponses sont enregistrées.</h2>\n        <p class="muted">${b?"Pas de réseau : elles seront envoyées automatiquement dès le retour de la connexion. Ne videz pas les données du navigateur d’ici là.":"Elles ont bien été transmises."}</p>\n        ${u?'<button class="p big" id="again">Nouveau questionnaire</button>':""}\n        <p class="muted small" style="margin-top:24px">Vous aussi, collectez vos données gratuitement avec <a href="#/">SamaCollect</a>.</p></div>`, i("#again")?.addEventListener("click", () => {
+          f(), scrollTo(0, 0)
+        })
+      }
+    };
+    f()
+  }],
+  [/^#\/donnees$/, async function(e) {
+    o.innerHTML = '<h1>Données de recherche ouvertes</h1>\n    <p class="muted">Jeux de données collectés par des chercheurs avec SamaCollect et partagés sous licence CC BY 4.0. Anonymisés : les informations personnelles sont retirées automatiquement.</p>\n    <input type="text" id="search" placeholder="Rechercher : thème, région, discipline, auteur…" style="margin-bottom:14px"><div id="cat"><div class="empty">Chargement…</div></div>';
+    const {
+      data: t,
+      error: n
+    } = await s.rpc("open_catalog");
+    if (!e()) return;
+    if (n) return void(i("#cat").innerHTML = `<div class="card empty">Catalogue indisponible : ${l($(n))}</div>`);
+    const a = () => {
+      const e = i("#search").value.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""),
+        n = t.filter(t => !e || [t.title, t.description, t.author_name, t.institution, t.discipline, t.region].join(" ").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(e));
+      i("#cat").innerHTML = n.length ? n.map(de).join("") : `<div class="card empty">${t.length?"Aucun résultat.":"Aucun jeu de données ouvert pour l’instant."}<br><a href="#/connexion">Publie le premier !</a></div>`
+    };
+    i("#search").oninput = a, a()
+  }],
+  [/^#\/donnees\/([\w-]+)$/, async function(e, t) {
+    o.innerHTML = '<div class="empty">Chargement…</div>';
+    const [{
+      data: n
+    }, {
+      data: a,
+      error: c
+    }] = await Promise.all([s.rpc("open_catalog"), s.rpc("open_dataset", {
+      fid: e
+    })]);
+    if (!t()) return;
+    const d = (n || []).find(t => t.id === e);
+    if (!d || c) return void(o.innerHTML = '<div class="card empty">Jeu de données introuvable ou non ouvert.</div>');
+    const u = new Date(d.updated_at).getFullYear(),
+      p = `${d.author_name||"Auteur inconnu"} (${u}). ${d.title} [jeu de données]. ${d.institution?d.institution+". ":""}SamaCollect. Licence CC BY 4.0. ${v()}#/donnees/${d.id}`;
+    o.innerHTML = `<p><a href="#/donnees">← Données ouvertes</a></p><h1>${l(d.title)}</h1>\n    <div class="card"><p style="margin-top:0;white-space:pre-line">${l(d.description)}</p>\n    <div class="row">${d.discipline?`<span class="chip x">${l(d.discipline)}</span>`:""}${d.region?`<span class="chip x">📍 ${l(d.region)}</span>`:""}<span class="chip">${a.length} réponses</span><span class="chip">CC BY 4.0</span></div>\n    <label class="f">Citer ce jeu de données</label><div class="share" id="cite">${l(p)}</div>\n    <div class="row" style="margin-top:8px"><button id="cpc">Copier la citation</button></div></div>\n    <div class="tabs"><button data-t="analyse" class="on">Analyse</button><button data-t="exporter">Télécharger</button></div><div id="pane"></div>`, i("#cpc").onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(p), g("Citation copiée")
+      } catch {
+        g("Copie impossible")
+      }
+    };
+    const m = {
+        title: d.title,
+        questions: d.questions,
+        settings: {}
+      },
+      h = i("#pane"),
+      f = e => "exporter" === e ? Y(h, m, a, !1) : ee(h, d.questions, a);
+    r(".tabs button").forEach(e => e.onclick = () => {
+      r(".tabs button").forEach(t => t.classList.toggle("on", t === e)), f(e.dataset.t)
+    }), f("analyse")
+  }],
+  [/^#\/verifier$/, function() {
+    o.innerHTML = '<h1>Détecteur IA <span class="chip">YAAKOBIND?</span></h1>\n    <p class="muted">Copie, mémoire, rapport ou réponse ouverte : colle le texte pour obtenir son indice de style automatique et le détail des indicateurs.</p>\n    <div class="card"><textarea id="vt" style="min-height:220px" placeholder="Colle le texte à analyser (au moins 30 mots)…"></textarea>\n    <div class="row" style="margin-top:10px"><button class="p big" id="vgo">Analyser</button><span class="muted small" id="vcount"></span></div></div><div id="vres"></div>';
+    const e = i("#vt");
+    e.oninput = () => {
+      i("#vcount").textContent = (e.value.match(se) || []).length + " mots"
+    }, i("#vgo").onclick = () => {
+      const t = e.value.split(/\n\s*\n/).map(e => e.trim()).filter(e => (e.match(se) || []).length >= 30),
+        n = ae(e.value);
+      if (n.words < 30) return void g("Il faut au moins 30 mots");
+      const s = t.map(e => ({
+          p: e,
+          r: ae(e)
+        })),
+        a = s.filter(e => e.r.score >= 45).length,
+        r = s.length ? Math.round(a / s.length * 100) : 0,
+        o = n.score >= 60 ? ["Style fortement automatique", "d"] : n.score >= 35 ? ["Style partiellement automatique", "w"] : ["Style humain", ""];
+      i("#vres").innerHTML = `<div class="kpis">\n        <div class="kpi"><span class="muted">Indice de style automatique</span><b>${n.score} / 100</b></div>\n        <div class="kpi"><span class="muted">Paragraphes concernés</span><b>${s.length?r+" %":"–"}</b></div>\n        <div class="kpi"><span class="muted">Seuil de tolérance</span><b>20 %</b></div>\n        <div class="kpi"><span class="muted">Verdict</span><b style="font-size:15px"><span class="chip ${o[1]}">${o[0]}</span></b></div></div>\n      <div class="card"><h3>Indicateurs</h3>${n.signals.length?`<ul style="margin:0;padding-left:18px">${n.signals.map(e=>`<li>${l(e)}</li>`).join("")}</ul>`:'<p class="muted" style="margin:0">Aucun indicateur de style automatique.</p>'}\n        <div class="stats" style="margin-top:12px"><div>Mots<b>${n.words}</b></div><div>Phrases<b>${n.sentences}</b></div><div>Mots / phrase<b>${c(n.mean)}</b></div><div>Richesse lexicale<b>${Math.round(100*n.ttr)} %</b></div></div></div>\n      ${s.length>1?`<div class="card"><h3>Analyse par paragraphe</h3>${s.map((e,t)=>`<div class="q"><div class="row"><b>§ ${t+1}</b><span class="chip ${e.r.score>=60?"d":e.r.score>=45?"w":""}">${e.r.score}/100</span></div><p class="small" style="margin:6px 0 0">${l(e.p.slice(0,280))}${e.p.length>280?"…":""}</p></div>`).join("")}</div>`:""}\n      <p class="muted small">L’indice mesure des marqueurs de style ; il oriente l’examen et se complète par un échange avec l’auteur.</p>`
+    }
+  }]
+];
+
+function F(e) {
+  return (...t) => D() ? e(...t) : (m.set("after", location.hash), location.hash = "#/connexion")
+}
+let R = 0;
+async function z() {
+  const e = ++R;
+  O(), window.scrollTo(0, 0);
+  const t = location.hash || "#/";
+  if (/access_token|error_description|type=recovery/.test(t)) o.innerHTML = '<div class="empty">Connexion en cours…</div>';
+  else {
+    for (const [n, s] of P) {
+      const a = t.match(n);
+      if (a) {
+        try {
+          await s(...a.slice(1), () => e === R)
+        } catch (t) {
+          console.error(t), e === R && (o.innerHTML = `<div class="card empty">Une erreur est survenue : ${l($(t))}</div>`)
+        }
+        return
+      }
+    }
+    o.innerHTML = '<div class="card empty">Page introuvable. <a href="#/">Retour à l’accueil</a></div>'
+  }
+}
+addEventListener("hashchange", z);
+const U = {
+  draft: ["Brouillon", "x"],
+  published: ["En collecte", ""],
+  closed: ["Clôturé", "w"]
+};
+
+function B(e) {
+  const t = "q_" + e.id,
+    n = e.required ? ' <span style="color:var(--danger)">*</span>' : "",
+    s = (e, n) => e.map(e => `<label class="opt"><input type="${n}" name="${t}" value="${l(e)}"><span>${l(e)}</span></label>`).join("");
+  let a = `<div class="q" data-qid="${e.id}"><label class="f" style="margin-top:0">${l(e.label)}${n}</label>${e.hint?`<div class="hint">${l(e.hint)}</div>`:""}`;
+  switch (e.type) {
+    case "number":
+      a += `<input type="number" step="any" inputmode="decimal" name="${t}" ${null!=e.min?`min="${e.min}"`:""} ${null!=e.max?`max="${e.max}"`:""}>`;
+      break;
+    case "date":
+      a += `<input type="date" name="${t}">`;
+      break;
+    case "long":
+      a += `<textarea name="${t}"></textarea>`;
+      break;
+    case "single":
+      a += s(e.options, "radio");
+      break;
+    case "multi":
+      a += s(e.options, "checkbox");
+      break;
+    case "yesno":
+      a += s(["Oui", "Non"], "radio");
+      break;
+    case "rating":
+      a += `<div class="rating">${s(["1","2","3","4","5"],"radio")}</div>`;
+      break;
+    case "gps":
+      a += `<button type="button" class="gpsbtn">📍 Enregistrer la position</button><div class="gpsval muted small" style="margin-top:6px"></div><input type="hidden" name="${t}">`;
+      break;
+    case "photo":
+      a += `<label class="btn" style="cursor:pointer">📷 Prendre ou choisir une photo<input type="file" accept="image/*" capture="environment" class="photoin" style="display:none"></label><img class="photoprev hidden" alt="" style="display:block;max-width:100%;max-height:260px;border-radius:10px;margin-top:8px"><input type="hidden" name="${t}">`;
+      break;
+    default:
+      a += `<input type="text" name="${t}">`
+  }
+  return a + '<div class="qerr small" style="color:var(--danger)"></div></div>'
+}
+
+function J(e, t, n) {
+  const s = {},
+    a = [];
+  for (const i of e.questions) {
+    const e = t.querySelector(`[data-qid="${i.id}"]`);
+    if (!e) continue;
+    const o = E(i, s);
+    if (e.classList.toggle("hidden", !o), e.classList.remove("err"), e.querySelector(".qerr").textContent = "", !o) continue;
+    const l = "q_" + i.id;
+    let c = null;
+    if ("multi" === i.type) c = r(`[name="${l}"]:checked`, e).map(e => e.value);
+    else if (["single", "yesno", "rating"].includes(i.type)) {
+      const t = e.querySelector(`[name="${l}"]:checked`);
+      c = t ? "rating" === i.type ? +t.value : t.value : null
+    } else if ("number" === i.type) {
+      const t = e.querySelector(`[name="${l}"]`).value;
+      c = "" === t ? null : Number(t)
+    } else if ("gps" === i.type) {
+      const t = e.querySelector(`[name="${l}"]`).value;
+      c = t ? JSON.parse(t) : null
+    } else c = e.querySelector(`[name="${l}"]`).value.trim() || null;
+    let d = "";
+    i.required && h(c) ? d = "Réponse obligatoire" : "number" === i.type && null != c && (Number.isNaN(c) ? d = "Nombre invalide" : null != i.min && c < i.min ? d = `Valeur minimale : ${i.min}` : null != i.max && c > i.max && (d = `Valeur maximale : ${i.max}`)), d && n && (e.classList.add("err"), e.querySelector(".qerr").textContent = d, a.push({
+      el: e,
+      msg: `${i.label.slice(0,40)} : ${d}`
+    })), h(c) || "number" == typeof c && Number.isNaN(c) || (s[i.id] = c)
+  }
+  return {
+    ans: s,
+    errors: a
+  }
+}
+const V = e => Array.isArray(e) ? e.join(", ") : null == e ? "" : "object" == typeof e && "lat" in e ? `${e.lat}, ${e.lon}` : String(e),
+  G = e => "string" == typeof e && e.startsWith("photo:") ? e.slice(6) : "";
+
+function Q(e, t, n) {
+  if (!n.length) return void(e.innerHTML = `<div class="card empty">Aucune réponse pour l’instant.<br><a href="#/resultats/${t.id}/partager">Partage ton formulaire</a> pour commencer la collecte.</div>`);
+  const a = n.slice().reverse();
+  e.innerHTML = `<div class="tw"><table><thead><tr><th>Date</th>${t.settings?.askEnumerator?"<th>Enquêteur</th>":""}${t.questions.map(e=>`<th title="${l(e.label)}">${l(e.code)}</th>`).join("")}<th></th></tr></thead><tbody>\n    ${a.map(e=>`<tr><td style="white-space:nowrap">${d(e.client_created_at||e.created_at)}</td>${t.settings?.askEnumerator?`<td>${l(e.enumerator)}</td>`:""}${t.questions.map(t=>{const n=e.answers?.[t.id];return`<td>${"photo"===t.type&&G(n)?`<span data-photo="${l(G(n))}">📷</span>`:l(V(n))}</td>`}).join("")}\n    <td><button class="g d" data-s="${e.id}" title="Supprimer">✕</button></td></tr>`).join("")}</tbody></table></div>\n    <p class="muted small">Survole un code de colonne pour voir l’intitulé complet. Les intitulés figurent aussi dans le dictionnaire des variables (onglet Exporter).</p>`, r("[data-s]", e).forEach(a => a.onclick = async () => {
+    if (!await f("Supprimer cette réponse ?", "Supprimer")) return;
+    const {
+      error: i
+    } = await s.from("submissions").delete().eq("id", a.dataset.s);
+    if (i) return g($(i));
+    n.splice(n.findIndex(e => e.id === a.dataset.s), 1), Q(e, t, n), g("Réponse supprimée")
+  }), async function(e) {
+    const t = r("[data-photo]", e);
+    if (!t.length) return;
+    const {
+      data: n
+    } = await s.storage.from("photos").createSignedUrls(t.map(e => e.dataset.photo), 3600);
+    (n || []).forEach((e, n) => {
+      e?.signedUrl && t[n] && (t[n].innerHTML = `<a href="${l(e.signedUrl)}" target="_blank" rel="noopener"><img src="${l(e.signedUrl)}" alt="photo" style="width:56px;height:56px;object-fit:cover;border-radius:6px"></a>`)
+    })
+  }(e)
+}
+
+function W(e, t, {
+  useCodes: n,
+  withEnum: s
+}) {
+  const a = e => (e = String(e ?? ""), /[";\n\r]/.test(e) ? '"' + e.replace(/"/g, '""') + '"' : e),
+    i = {
+      lat: "latitude",
+      lon: "longitude",
+      acc: "précision m"
+    },
+    r = e.flatMap(e => "gps" === e.type ? ["lat", "lon", "acc"].map(t => [t, e]) : [
+      [null, e]
+    ]);
+  return "\ufeff" + [
+    ["id", "date", ...s ? ["enqueteur"] : [], ...r.map(([e, t]) => e ? n ? `${t.code}_${e}` : `${t.label} (${i[e]})` : n ? t.code : t.label)], ...t.map(e => [e.id, new Date(e.client_created_at || e.created_at).toISOString(), ...s ? [e.enumerator || ""] : [], ...r.map(([t, n]) => {
+      const s = e.answers?.[n.id];
+      return t ? s && null != s[t] ? String(s[t]).replace(".", ",") : "" : Array.isArray(s) ? s.join(" | ") : "number" == typeof s ? String(s).replace(".", ",") : G(s) || (s ?? "")
+    })])
+  ].map(e => e.map(a).join(";")).join("\r\n")
+}
+
+function Y(e, t, n, s) {
+  const a = y(t.title);
+  e.innerHTML = `<div class="card"><h2>Exporter ${n.length} réponse(s)</h2>\n    <p class="muted">Séparateur point-virgule et virgule décimale, prêts pour Excel en français. Dans R : <code>read.csv2("fichier.csv", encoding = "UTF-8")</code>.</p>\n    <div class="grid2">\n      <button class="p" data-x="labels">CSV avec intitulés (Excel)</button>\n      <button data-x="codes">CSV avec codes (R, SPSS, Stata)</button>\n      <button data-x="dict">Dictionnaire des variables</button>\n      <button data-x="json">JSON (développeurs)</button>\n      ${t.questions.some(e=>"gps"===e.type)?'<button data-x="geo">GeoJSON (QGIS, ArcGIS)</button>':""}\n    </div></div>`, r("[data-x]", e).forEach(e => e.onclick = () => {
+    const i = e.dataset.x,
+      r = {
+        withEnum: s && !!t.settings?.askEnumerator
+      };
+    "labels" === i && b(a + ".csv", W(t.questions, n, {
+      ...r,
+      useCodes: !1
+    })), "codes" === i && b(a + "_codes.csv", W(t.questions, n, {
+      ...r,
+      useCodes: !0
+    })), "dict" === i && b(a + "_dictionnaire.csv", function(e) {
+      const t = e => (e = String(e ?? ""), /[";\n\r]/.test(e) ? '"' + e.replace(/"/g, '""') + '"' : e);
+      return "\ufeff" + [
+        ["code", "intitule", "type", "modalites", "obligatoire", "condition_affichage"], ...e.map(t => {
+          const n = e.find(e => e.id === t.showIf?.q);
+          return [t.code, t.label, x[t.type], k(t).join(" | "), t.required ? "oui" : "non", n ? `${n.code} ${L[t.showIf.op]}${"answered"===t.showIf.op?"":" "+t.showIf.value}` : ""]
+        })
+      ].map(e => e.map(t).join(";")).join("\r\n")
+    }(t.questions)), "json" === i && b(a + ".json", function(e, t) {
+      return JSON.stringify(t.map(t => {
+        const n = {
+          id: t.id,
+          date: t.client_created_at || t.created_at
+        };
+        return e.forEach(e => n[e.code] = t.answers?.[e.id] ?? null), n
+      }), null, 2)
+    }(t.questions, n), "application/json"), "geo" === i && b(a + ".geojson", function(e, t) {
+      const n = e.find(e => "gps" === e.type);
+      return JSON.stringify({
+        type: "FeatureCollection",
+        features: t.filter(e => "number" == typeof e.answers?.[n.id]?.lat).map(t => {
+          const s = t.answers[n.id],
+            a = {
+              id: t.id,
+              date: t.client_created_at || t.created_at,
+              precision_m: s.acc
+            };
+          return e.forEach(e => {
+            if ("gps" !== e.type && "photo" !== e.type) {
+              const n = t.answers?.[e.id];
+              a[e.code] = Array.isArray(n) ? n.join(" | ") : n ?? null
+            }
+          }), {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [s.lon, s.lat]
+            },
+            properties: a
+          }
+        })
+      }, null, 1)
+    }(t.questions, n), "application/geo+json")
+  })
+}
+
+function Z(e, t, n = "") {
+  const s = Math.max(1, ...e.map(e => e[1]));
+  return e.map(([e, n]) => `<div class="bar"><span class="l" title="${l(e)}">${l(e)}</span><span class="t"><i style="width:${n/s*100}%"></i></span><span class="v">${n} · ${t?Math.round(n/t*100):0} %</span></div>`).join("") + n
+}
+
+function K(e) {
+  const t = e.slice().sort((e, t) => e - t),
+    n = t.length,
+    s = t.reduce((e, t) => e + t, 0),
+    a = s / n,
+    i = e => {
+      const s = (n - 1) * e,
+        a = Math.floor(s),
+        i = Math.ceil(s);
+      return t[a] + (t[i] - t[a]) * (s - a)
+    },
+    r = n > 1 ? Math.sqrt(t.reduce((e, t) => e + (t - a) ** 2, 0) / (n - 1)) : 0;
+  return {
+    n: n,
+    sum: s,
+    mean: a,
+    sd: r,
+    min: t[0],
+    max: t[n - 1],
+    med: i(.5),
+    q1: i(.25),
+    q3: i(.75),
+    a: t
+  }
+}
+
+function X(e, t) {
+  const n = new Map(k(e).map(e => [e, 0]));
+  return t.flat().forEach(e => {
+    const t = String(e);
+    n.set(t, (n.get(t) || 0) + 1)
+  }), [...n.entries()]
+}
+
+function ee(e, t, n) {
+  if (!n.length) return void(e.innerHTML = '<div class="card empty">Pas encore de données à analyser.</div>');
+  const s = n.map(e => e.client_created_at || e.created_at),
+    o = new Map;
+  s.forEach(e => {
+    const t = u(e);
+    o.set(t, (o.get(t) || 0) + 1)
+  });
+  const p = new Set(n.map(e => e.enumerator).filter(Boolean));
+  let m = `<div class="kpis"><div class="kpi"><span class="muted">Réponses</span><b>${n.length}</b></div>\n    <div class="kpi"><span class="muted">Jours de collecte</span><b>${o.size}</b></div>\n    ${p.size?`<div class="kpi"><span class="muted">Enquêteurs</span><b>${p.size}</b></div>`:""}\n    <div class="kpi"><span class="muted">Dernière réponse</span><b style="font-size:15px">${d(s[s.length-1])}</b></div></div>\n    <div class="card"><h3>Rythme de collecte</h3>${Z([...o.entries()].slice(-12),n.length)}</div>`;
+  t.forEach(e => {
+    const t = n.filter(t => E(e, t.answers || {})).length,
+      s = n.map(t => t.answers?.[e.id]).filter(e => !h(e));
+    if (m += `<div class="card"><div class="row" style="margin-bottom:4px"><h3 style="margin:0;flex:1">${l(e.code)}. ${l(e.label)}</h3><span class="chip">${x[e.type]}</span></div>\n      <p class="muted" style="margin:0 0 10px">${s.length} réponse(s)${e.showIf?` sur ${t} concerné(s)`:` sur ${n.length}`}</p>`, s.length)
+      if ("number" === e.type || "rating" === e.type) {
+        const t = K(s.map(Number).filter(e => !Number.isNaN(e)));
+        m += `<div class="stats"><div>Moyenne<b>${c(t.mean)}</b></div><div>Médiane<b>${c(t.med)}</b></div><div>Écart-type<b>${c(t.sd)}</b></div>\n          <div>Q1 – Q3<b>${c(t.q1)} – ${c(t.q3)}</b></div><div>Min – Max<b>${c(t.min)} – ${c(t.max)}</b></div>${"number"===e.type?`<div>Total<b>${c(t.sum)}</b></div>`:""}</div>`, m += "rating" === e.type ? Z(X(e, s), s.length) : Z(function(e) {
+          const t = e[0],
+            n = e[e.length - 1];
+          if (t === n) return [
+            [c(t), e.length]
+          ];
+          const s = Math.min(7, Math.max(3, Math.ceil(Math.log2(e.length) + 1))),
+            a = (n - t) / s,
+            i = Array(s).fill(0);
+          return e.forEach(e => i[Math.min(s - 1, Math.floor((e - t) / a))]++), i.map((e, n) => [`${c(t+n*a)} – ${c(t+(n+1)*a)}`, e])
+        }(t.a), s.length)
+      } else if ("single" === e.type || "yesno" === e.type) m += Z(X(e, s).sort((e, t) => t[1] - e[1]), s.length);
+    else if ("multi" === e.type) m += Z(X(e, s).sort((e, t) => t[1] - e[1]), s.length, '<p class="muted small" style="margin:6px 0 0">% des répondants (plusieurs réponses possibles).</p>');
+    else if ("gps" === e.type) {
+      const t = s.map(e => e.acc).filter(Number.isFinite);
+      m += `<div class="stats"><div>Points<b>${s.length}</b></div>${t.length?`<div>Précision médiane<b>± ${c(K(t).med)} m</b></div>`:""}</div><div data-gps="${e.id}" style="height:320px;border-radius:10px;overflow:hidden;background:#efebe1"></div>`
+    } else if ("photo" === e.type) m += `<p class="muted" style="margin:0">${s.length} photo(s), visibles dans l’onglet Réponses.</p>`;
+    else if ("date" === e.type) {
+      const e = s.slice().sort();
+      m += `<div class="stats"><div>Plus ancienne<b>${l(e[0])}</b></div><div>Plus récente<b>${l(e[e.length-1])}</b></div></div>`
+    } else m += s.slice(-5).reverse().map(e => `<div class="q" style="margin-bottom:6px;padding:8px 10px">${l(e)}</div>`).join("") + (s.length > 5 ? `<p class="muted small">… et ${s.length-5} autre(s) dans le tableau.</p>` : "");
+    m += "</div>"
+  });
+  const v = t.filter(e => M.includes(e.type)),
+    g = t.filter(e => "number" === e.type);
+  if (v.length && (m += `<div class="card"><h3>Tableau croisé</h3><p class="muted" style="margin-top:0">Croise une variable catégorielle avec une autre (effectifs et % en ligne, test du khi²) ou avec un nombre (moyenne par groupe).</p>\n    <div class="row"><select id="xa">${v.map(e=>`<option value="${e.id}">${l(e.code)} – ${l(e.label.slice(0,45))}</option>`).join("")}</select><span class="muted">×</span><select id="xb"></select></div><div id="xt" style="margin-top:12px"></div></div>`), e.innerHTML = m, async function(e, t) {
+      for (const n of r("[data-gps]", e)) {
+        const e = t.map(e => e.answers?.[n.dataset.gps]).filter(e => e && "number" == typeof e.lat);
+        if (e.length)
+          if (a) n.style.height = "auto", n.innerHTML = `<div class="muted small" style="padding:10px">La carte s’affiche dans la version en ligne. Points : ${e.slice(0,8).map(e=>`${e.lat}, ${e.lon}`).join(" · ")}${e.length>8?"…":""}</div>`;
+          else try {
+            const t = await te();
+            if (!n.isConnected) return;
+            const s = t.map(n, {
+              scrollWheelZoom: !1
+            });
+            t.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+              maxZoom: 19,
+              attribution: "© OpenStreetMap"
+            }).addTo(s);
+            const a = t.featureGroup(e.map(e => t.circleMarker([e.lat, e.lon], {
+              radius: 6,
+              color: "#0f6b4f",
+              weight: 2,
+              fillColor: "#d98e2b",
+              fillOpacity: .85
+            }).bindTooltip(`± ${e.acc} m`))).addTo(s);
+            s.fitBounds(a.getBounds().pad(.25), {
+              maxZoom: 15
+            })
+          } catch {
+            n.innerHTML = '<div class="empty">Carte indisponible hors ligne.</div>'
+          }
+      }
+    }(e, n), !v.length) return;
+  const f = () => {
+      const e = i("#xa").value;
+      i("#xb").innerHTML = [...v, ...g].filter(t => t.id !== e).map(e => `<option value="${e.id}">${l(e.code)} – ${l(e.label.slice(0,45))}</option>`).join("")
+    },
+    b = () => function(e, t, n, s) {
+      if (!t || !n) return void(e.innerHTML = '<p class="muted">Ajoute une deuxième variable pour croiser.</p>');
+      const a = k(t);
+      if ("number" === n.type) return void(e.innerHTML = `<div class="tw"><table class="xt"><thead><tr><th>${l(t.code)}</th><th>n</th><th>Moyenne ${l(n.code)}</th><th>Médiane</th><th>Écart-type</th></tr></thead><tbody>${a.map(e=>{const a=s.filter(n=>String(n.answers?.[t.id])===e).map(e=>e.answers?.[n.id]).filter(e=>"number"==typeof e);if(!a.length)return`<tr><td>${l(e)}</td><td>0</td><td>–</td><td>–</td><td>–</td></tr>`;const i=K(a);return`<tr><td>${l(e)}</td><td>${i.n}</td><td>${c(i.mean)}</td><td>${c(i.med)}</td><td>${c(i.sd)}</td></tr>`}).join("")}</tbody></table></div>`);
+      const i = k(n),
+        r = a.map(e => i.map(a => s.filter(s => String(s.answers?.[t.id]) === e && (Array.isArray(s.answers?.[n.id]) ? s.answers[n.id].includes(a) : String(s.answers?.[n.id]) === a)).length)),
+        o = r.map(e => e.reduce((e, t) => e + t, 0)),
+        d = i.map((e, t) => r.reduce((e, n) => e + n[t], 0)),
+        u = o.reduce((e, t) => e + t, 0);
+      let p = 0,
+        m = 0,
+        h = 0;
+      r.forEach((e, t) => e.forEach((e, n) => {
+        const s = o[t] * d[n] / (u || 1);
+        o[t] && d[n] && (h++, p += (e - s) ** 2 / s, s < 5 && m++)
+      }));
+      const v = (o.filter(Boolean).length - 1) * (d.filter(Boolean).length - 1),
+        g = v > 0 && "multi" !== n.type ? (f = p, b = v, 1 - function(e, t) {
+          if (t <= 0) return 0;
+          const n = function(e) {
+            const t = [76.18009172947146, -86.50532032941678, 24.01409824083091, -1.231739572450155, .001208650973866179, -5395239384953e-18];
+            let n = e,
+              s = e,
+              a = n + 5.5;
+            a -= (n + .5) * Math.log(a);
+            let i = 1.000000000190015;
+            for (const e of t) i += e / ++s;
+            return -a + Math.log(2.5066282746310007 * i / n)
+          }(e);
+          if (t < e + 1) {
+            let s = 1 / e,
+              a = s,
+              i = e;
+            for (let e = 0; e < 200 && (i++, a *= t / i, s += a, !(Math.abs(a) < 1e-12 * Math.abs(s))); e++);
+            return s * Math.exp(-t + e * Math.log(t) - n)
+          }
+          let s = t + 1 - e,
+            a = 1e300,
+            i = 1 / s,
+            r = i;
+          for (let t = 1; t < 200; t++) {
+            const n = -t * (t - e);
+            s += 2, i = n * i + s, Math.abs(i) < 1e-300 && (i = 1e-300), a = s + n / a, Math.abs(a) < 1e-300 && (a = 1e-300), i = 1 / i;
+            const o = i * a;
+            if (r *= o, Math.abs(o - 1) < 1e-12) break
+          }
+          return 1 - Math.exp(-t + e * Math.log(t) - n) * r
+        }(b / 2, f / 2)) : null;
+      var f, b;
+      e.innerHTML = `<div class="tw"><table class="xt"><thead><tr><th>${l(t.code)} \\ ${l(n.code)}</th>${i.map(e=>`<th>${l(e)}</th>`).join("")}<th>Total</th></tr></thead><tbody>\n    ${r.map((e,t)=>`<tr><td>${l(a[t])}</td>${e.map(e=>`<td>${e}${o[t]?`<div class="muted small">${Math.round(e/o[t]*100)} %</div>`:""}</td>`).join("")}<td><b>${o[t]}</b></td></tr>`).join("")}\n    <tr><td><b>Total</b></td>${d.map(e=>`<td><b>${e}</b></td>`).join("")}<td><b>${u}</b></td></tr></tbody></table></div>\n    ${null!=g?`<p class="muted small">Khi² = ${c(p)} ; ddl = ${v} ; p ${g<.001?"< 0,001":"= "+c(g)} → ${g<.05?"<b>association significative au seuil de 5 %</b>":"pas d’association significative au seuil de 5 %"}.${m/(h||1)>.2?" ⚠ Plus de 20 % des effectifs attendus sont inférieurs à 5 : résultat à interpréter avec prudence.":""}</p>`:""}`
+    }(i("#xt"), t.find(e => e.id === i("#xa").value), t.find(e => e.id === i("#xb").value), n);
+  i("#xa").onchange = () => {
+    f(), b()
+  }, i("#xb").onchange = b, f(), b()
+}
+
+function te() {
+  return window.L ? Promise.resolve(window.L) : new Promise((e, t) => {
+    const n = document.createElement("link");
+    n.rel = "stylesheet", n.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css", document.head.appendChild(n);
+    const s = document.createElement("script");
+    s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js", s.onload = () => e(window.L), s.onerror = t, document.head.appendChild(s)
+  })
+}
+const ne = ["il est important de noter", "il convient de noter", "il est essentiel", "en conclusion", "en somme", "en résumé", "en définitive", "joue un rôle crucial", "joue un rôle clé", "rôle essentiel", "un enjeu majeur", "force est de constater", "dans un monde", "à l’ère", "à l'ère", "par ailleurs", "en outre", "de plus,", "tout d’abord", "tout d'abord", "ainsi,", "néanmoins", "il est crucial", "permet de favoriser", "contribue à", "furthermore", "moreover", "in conclusion", "it is important to note", "plays a crucial role", "delve", "additionally", "overall,", "in summary"],
+  se = /[\p{L}’'-]+/gu;
+
+function ae(e) {
+  const t = String(e || "").trim(),
+    n = t.toLowerCase(),
+    s = n.match(se) || [],
+    a = t.split(/(?<=[.!?…])\s+/).filter(e => (e.match(se) || []).length > 0),
+    i = a.map(e => (e.match(se) || []).length),
+    r = i.reduce((e, t) => e + t, 0) / (i.length || 1),
+    o = i.length >= 3 ? Math.sqrt(i.reduce((e, t) => e + (t - r) ** 2, 0) / i.length) / (r || 1) : null,
+    l = ne.filter(e => n.includes(e)),
+    c = s.length ? new Set(s).size / s.length : 0,
+    d = [];
+  let u = 0;
+  const p = (e, t) => {
+    u += e, d.push(t)
+  };
+  return s.length >= 30 && (l.length && p(Math.min(36, 12 * l.length), `connecteurs et formules types : ${l.slice(0,4).join(", ")}`), null !== o && o < .35 && p(18, "phrases de longueur très régulière"), r > 22 && p(10, "phrases longues et denses"), /[—–]/.test(t) && p(8, "tirets longs"), /^\s*([-•*]|\d+[.)])\s/m.test(t) && p(10, "mise en forme en liste"), /^[A-ZÀ-Ý«"]/.test(t) && /[.!?…»"]$/.test(t) && !/\s[,.;:!?](?!\s)|[a-zà-ÿ]\.[a-zà-ÿ]/.test(t) && p(8, "typographie impeccable"), s.length >= 80 && c > .62 && p(10, "vocabulaire très varié")), {
+    score: Math.min(100, u),
+    signals: d,
+    words: s.length,
+    sentences: a.length,
+    mean: r,
+    ttr: c
+  }
+}
+const ie = e => {
+    const t = String(e).toLowerCase().match(/[\p{L}\d]+/gu) || [],
+      n = new Set;
+    for (let e = 0; e + 2 < t.length; e++) n.add(t[e] + " " + t[e + 1] + " " + t[e + 2]);
+    return n
+  },
+  re = (e, t) => {
+    if (!e.size || !t.size) return 0;
+    let n = 0;
+    for (const s of e) t.has(s) && n++;
+    return n / (e.size + t.size - n)
+  },
+  oe = (e, t) => {
+    const n = Math.PI / 180,
+      s = (t.lat - e.lat) * n,
+      a = (t.lon - e.lon) * n,
+      i = Math.sin(s / 2) ** 2 + Math.cos(e.lat * n) * Math.cos(t.lat * n) * Math.sin(a / 2) ** 2;
+    return 12742e3 * Math.asin(Math.sqrt(i))
+  };
+
+function le(e) {
+  if (e.length < 6) return () => !1;
+  const t = K(e).med,
+    n = K(e.map(e => Math.abs(e - t))).med;
+  return e => n > 0 && Math.abs(.6745 * (e - t) / n) > 3.5
+}
+const ce = {
+  ok: ["Fiable", ""],
+  check: ["À vérifier", "w"],
+  bad: ["Suspecte", "d"]
+};
+
+function de(e) {
+  return `<a class="card dataset" href="#/donnees/${e.id}"><div class="row"><b style="flex:1">${l(e.title)}</b><span class="chip">${e.n} réponse${e.n>1?"s":""}</span></div>\n    <div class="muted">${l([e.author_name,e.institution].filter(Boolean).join(" — ")||"Auteur non renseigné")}</div>\n    <div class="row" style="margin-top:6px">${e.discipline?`<span class="chip x">${l(e.discipline)}</span>`:""}${e.region?`<span class="chip x">📍 ${l(e.region)}</span>`:""}<span class="muted small sp">${(e.questions||[]).length} variables · ${u(e.updated_at)}</span></div></a>`
+}
+"serviceWorker" in navigator && "https:" === location.protocol && navigator.serviceWorker.register("sw.js").catch(() => {}), (async () => {
+  if (s) {
+    const {
+      data: e
+    } = await s.auth.getSession();
+    I = e.session, s.auth.onAuthStateChange((e, t) => {
+      const n = !!I;
+      I = t, O(), "PASSWORD_RECOVERY" === e ? async function() {
+        o.innerHTML = '<div class="card" style="max-width:440px;margin:20px auto"><h2>Nouveau mot de passe</h2><form id="np"><input type="password" name="p" minlength="8" required placeholder="8 caractères minimum"><button class="p big" style="width:100%;margin-top:12px">Enregistrer</button></form></div>', i("#np").onsubmit = async e => {
+          e.preventDefault();
+          const {
+            error: t
+          } = await s.auth.updateUser({
+            password: new FormData(e.target).get("p")
+          });
+          g(t ? $(t) : "Mot de passe modifié"), t || (location.hash = "#/formulaires")
+        }
+      }(): n === !!t || /^#\/f\//.test(location.hash) || z()
+    })
+  }
+  if (a) {
+    const e = document.createElement("div");
+    e.className = "net", e.style.background = "#8a5a12", e.textContent = "Mode démonstration : les données restent sur cet appareil. Mets SamaCollect en ligne pour collecter à plusieurs.", i("#top").after(e)
+  }
+  try {
+    navigator.storage?.persist?.()
+  } catch {}
+  await loadQ(), H(), z(), A()
+})();
