@@ -1,0 +1,437 @@
+{
+ "samacollect": 1,
+ "form": {
+  "title": "Contrôle interne de la passation des marchés publics en établissement public de santé",
+  "description": "Enquête auprès des acteurs de la commande publique des établissements publics de santé (EPS). Elle évalue l'efficacité du contrôle interne sur la gestion de la passation des marchés et sur leur légalité et régularité. Durée : environ 10 minutes. Réponses confidentielles, exploitées uniquement à des fins de recherche.",
+  "discipline": "Commande publique et finances publiques",
+  "region": "Matam",
+  "institution": "Université Iba Der Thiam de Thiès",
+  "settings": {
+   "askEnumerator": false
+  },
+  "questions": [
+   {
+    "id": "cimp1",
+    "code": "q1",
+    "label": "Établissement ou structure",
+    "hint": "Ex. Hôpital régional de Matam",
+    "type": "text",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp2",
+    "code": "q2",
+    "label": "Votre fonction",
+    "hint": "",
+    "type": "single",
+    "required": true,
+    "personal": false,
+    "options": [
+     "Directeur / administrateur hospitalier",
+     "Chef du service administratif et financier",
+     "Coordonnateur de la Cellule de passation des marchés (CPM)",
+     "Personne responsable des marchés (PRM)",
+     "Contrôleur de gestion",
+     "Agent comptable",
+     "Membre d’une commission de réception",
+     "Autre"
+    ],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp3",
+    "code": "q3",
+    "label": "Ancienneté dans la commande publique (années)",
+    "hint": "",
+    "type": "number",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": 0,
+    "max": 45,
+    "showIf": null
+   },
+   {
+    "id": "cimp4",
+    "code": "q4",
+    "label": "Avez-vous suivi une formation en marchés publics au cours des 3 dernières années ?",
+    "hint": "",
+    "type": "yesno",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp5",
+    "code": "q5",
+    "label": "Type de formation suivie",
+    "hint": "",
+    "type": "multi",
+    "required": false,
+    "personal": false,
+    "options": [
+     "Formation ARCOP",
+     "Diplôme / master en commande publique",
+     "Atelier ou formation interne",
+     "Formation en ligne",
+     "Autre"
+    ],
+    "min": null,
+    "max": null,
+    "showIf": {
+     "q": "cimp4",
+     "op": "eq",
+     "value": "Oui"
+    }
+   },
+   {
+    "id": "cimp6",
+    "code": "q6",
+    "label": "Existe-t-il un dispositif formalisé de contrôle interne dans votre établissement ?",
+    "hint": "",
+    "type": "single",
+    "required": true,
+    "personal": false,
+    "options": [
+     "Oui, formalisé et appliqué",
+     "Oui, formalisé mais peu appliqué",
+     "Non, contrôle informel",
+     "Non, inexistant",
+     "Ne sait pas"
+    ],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp7",
+    "code": "q7",
+    "label": "Pour la direction de votre établissement, le contrôle interne est plutôt…",
+    "hint": "",
+    "type": "single",
+    "required": false,
+    "personal": false,
+    "options": [
+     "Une priorité permanente",
+     "Un projet en cours",
+     "Une préoccupation occasionnelle",
+     "Pas une priorité"
+    ],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp8",
+    "code": "q8",
+    "label": "Impact du contrôle interne sur la qualité de la gestion hospitalière",
+    "hint": "1 = très faible, 5 = très élevé",
+    "type": "rating",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp9",
+    "code": "q9",
+    "label": "Le plan de passation des marchés est-il élaboré et publié chaque année ?",
+    "hint": "",
+    "type": "single",
+    "required": true,
+    "personal": false,
+    "options": [
+     "Toujours",
+     "Souvent",
+     "Rarement",
+     "Jamais"
+    ],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp10",
+    "code": "q10",
+    "label": "Les procédures de passation sont-elles documentées (manuel de procédures) ?",
+    "hint": "",
+    "type": "yesno",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp11",
+    "code": "q11",
+    "label": "Séparation des fonctions (expression du besoin, passation, réception, paiement)",
+    "hint": "1 = très faible, 5 = très élevé",
+    "type": "rating",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp12",
+    "code": "q12",
+    "label": "Respect des délais de passation des marchés",
+    "hint": "1 = très faible, 5 = très élevé",
+    "type": "rating",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp13",
+    "code": "q13",
+    "label": "Principes fondamentaux appliqués de façon effective",
+    "hint": "",
+    "type": "multi",
+    "required": false,
+    "personal": false,
+    "options": [
+     "Liberté d’accès à la commande publique",
+     "Égalité de traitement des candidats",
+     "Transparence des procédures",
+     "Économie et efficacité"
+    ],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp14",
+    "code": "q14",
+    "label": "Principales difficultés rencontrées dans la passation",
+    "hint": "",
+    "type": "multi",
+    "required": false,
+    "personal": false,
+    "options": [
+     "Mauvaise définition des besoins",
+     "Retards dans les procédures",
+     "Fractionnement des marchés",
+     "Dossiers incomplets",
+     "Manque de compétences",
+     "Pressions ou interférences",
+     "Insuffisance budgétaire",
+     "Autre"
+    ],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp15",
+    "code": "q15",
+    "label": "Disposez-vous d’un référentiel des marchés (base de prix, mercuriale) ?",
+    "hint": "",
+    "type": "yesno",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp16",
+    "code": "q16",
+    "label": "Précision de l’estimation de la valeur des marchés",
+    "hint": "1 = très faible, 5 = très élevé",
+    "type": "rating",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp17",
+    "code": "q17",
+    "label": "Conformité de l’exécution des marchés aux besoins et aux obligations réglementaires",
+    "hint": "1 = très faible, 5 = très élevé",
+    "type": "rating",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp18",
+    "code": "q18",
+    "label": "Les avis de l’organe de contrôle (contrôle a priori) sont-ils sollicités lorsque requis ?",
+    "hint": "",
+    "type": "single",
+    "required": false,
+    "personal": false,
+    "options": [
+     "Toujours",
+     "Souvent",
+     "Rarement",
+     "Jamais"
+    ],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp19",
+    "code": "q19",
+    "label": "Nombre de recours ou contentieux sur les marchés au cours des 12 derniers mois",
+    "hint": "",
+    "type": "number",
+    "required": false,
+    "personal": false,
+    "options": [],
+    "min": 0,
+    "max": 200,
+    "showIf": null
+   },
+   {
+    "id": "cimp20",
+    "code": "q20",
+    "label": "Existe-t-il une procédure formelle de traitement des irrégularités et manquements ?",
+    "hint": "",
+    "type": "yesno",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp21",
+    "code": "q21",
+    "label": "Méthodes utilisées pour traiter les irrégularités",
+    "hint": "",
+    "type": "multi",
+    "required": false,
+    "personal": false,
+    "options": [
+     "Audit interne",
+     "Contrôle de la CPM",
+     "Revue ou audit de l’ARCOP",
+     "Inspection / contrôle externe",
+     "Sanctions administratives",
+     "Mesures correctives documentées"
+    ],
+    "min": null,
+    "max": null,
+    "showIf": {
+     "q": "cimp20",
+     "op": "eq",
+     "value": "Oui"
+    }
+   },
+   {
+    "id": "cimp22",
+    "code": "q22",
+    "label": "Fréquence des irrégularités constatées dans la passation",
+    "hint": "",
+    "type": "single",
+    "required": false,
+    "personal": false,
+    "options": [
+     "Très fréquentes",
+     "Fréquentes",
+     "Rares",
+     "Inexistantes",
+     "Ne sait pas"
+    ],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp23",
+    "code": "q23",
+    "label": "Implication des services bénéficiaires dans le processus de passation",
+    "hint": "1 = très faible, 5 = très élevé",
+    "type": "rating",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp24",
+    "code": "q24",
+    "label": "Niveau de formation des acteurs de la passation dans votre établissement",
+    "hint": "1 = très faible, 5 = très élevé",
+    "type": "rating",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp25",
+    "code": "q25",
+    "label": "Efficacité globale de la passation des marchés dans votre établissement",
+    "hint": "1 = très faible, 5 = très élevé",
+    "type": "rating",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp26",
+    "code": "q26",
+    "label": "Dans quelle mesure le contrôle interne garantit-il le respect des dispositions légales et réglementaires ?",
+    "hint": "1 = très faible, 5 = très élevé",
+    "type": "rating",
+    "required": true,
+    "personal": false,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   },
+   {
+    "id": "cimp27",
+    "code": "q27",
+    "label": "Vos attentes et recommandations pour améliorer l’efficacité de la passation des marchés",
+    "hint": "",
+    "type": "long",
+    "required": false,
+    "personal": true,
+    "options": [],
+    "min": null,
+    "max": null,
+    "showIf": null
+   }
+  ]
+ }
+}
