@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SamaCollect — collecte et données de recherche</title>
+<meta name="description" content="Créez des questionnaires, collectez hors ligne, analysez et partagez des données de recherche ouvertes au Sénégal.">
+<meta name="theme-color" content="#0f6b4f">
+<meta property="og:title" content="SamaCollect">
+<meta property="og:description" content="Collecte de données hors ligne, analyse instantanée et données de recherche ouvertes pour le Sénégal.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top" id="top">
+  <a href="#/" class="brand"><span class="logo">SC</span><span>SamaCollect</span></a>
+  <nav id="topnav"></nav>
+</header>
+<div id="net" class="net hidden"></div>
+<main id="app"><div class="empty">Chargement…</div></main>
+<div class="modal" id="modal"><div class="card">
+  <p id="mmsg"></p>
+  <div class="row end"><button id="mno">Annuler</button><button class="p" id="myes">Confirmer</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
