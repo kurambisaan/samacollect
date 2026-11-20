@@ -1,6 +1,6 @@
 // SamaCollect — pages complémentaires : confidentialité et tableau de bord administrateur
 const CFG = window.SAMA_CONFIG || {};
-const CONTACT = ''; // adresse de contact à afficher sur la page de confidentialité (laisser vide pour la masquer)
+const CONTACT = 'kurambisaan@gmail.com'; // adresse de contact à afficher sur la page de confidentialité (laisser vide pour la masquer)
 const { createClient } = CFG.supabaseUrl
   ? await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm')
   : await import('./demo.js');
