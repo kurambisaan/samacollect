@@ -1,8 +1,8 @@
 // SamaCollect — service worker (fonctionnement hors ligne)
-const CACHE = "samacollect-v5";
+const CACHE = "samacollect-v6";
 // Fichiers chargés par index.html, avec exactement les mêmes adresses (?v inclus)
 const PRECACHE = [
-  "./", "./index.html", "./config.js", "./app.js?v6", "./import.js?v1", "./extras.js?v3",
+  "./", "./index.html", "./config.js", "./app.js?v7", "./import.js?v1", "./extras.js?v3",
   "./styles.css?v4", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png"
 ];
 const CDN = ["cdn.jsdelivr.net", "unpkg.com", "esm.sh", "fonts.googleapis.com", "fonts.gstatic.com"];

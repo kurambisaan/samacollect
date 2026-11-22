@@ -131,7 +131,6 @@ function E(e, t) {
   const a = Array.isArray(s) ? s.map(String).includes(String(n.value)) : String(s) === String(n.value);
   return "eq" === n.op ? a : "neq" === n.op ? !a : "gt" === n.op ? Number(s) > Number(n.value) : "lt" !== n.op || Number(s) < Number(n.value)
 }
-const j = ["Bois de chauffe", "Charbon de bois", "Gaz butane", "Électricité", "Résidus agricoles / bouses"];
 // File d'attente hors ligne : IndexedDB (plusieurs centaines de Mo) au lieu de localStorage (5 Mo).
 const QDB = (() => {
   let pr = null;
@@ -373,7 +372,7 @@ const P = [
     await (s?.auth.signOut()), location.hash = "#/"
   }],
   [/^#\/formulaires$/, F(async function(e) {
-    o.innerHTML = '<div class="row" style="margin-bottom:14px"><h1 style="margin:0">Mes formulaires</h1><span class="sp"></span>\n    <button class="p" id="newF">+ Nouveau</button><button id="tplF" hidden>Modèle bois-énergie</button></div><div id="list"><div class="empty">Chargement…</div></div>';
+    o.innerHTML = '<div class="row" style="margin-bottom:14px"><h1 style="margin:0">Mes formulaires</h1><span class="sp"></span>\n    <button class="p" id="newF">+ Nouveau</button></div><div id="list"><div class="empty">Chargement…</div></div>';
     const t = async e => {
       const t = D().user_metadata?.full_name || "",
         n = {
@@ -393,93 +392,7 @@ const P = [
       if (i) return g($(i));
       location.hash = "#/editer/" + a.id
     };
-    i("#newF").onclick = () => t({}), i("#tplF").onclick = () => t(function() {
-      const e = [],
-        t = t => {
-          const n = {
-            ...C(e, t.type),
-            ...t
-          };
-          return e.push(n), n
-        };
-      t({
-        label: "Commune / village",
-        type: "text",
-        required: !0,
-        personal: !1
-      }), t({
-        label: "Milieu de résidence",
-        type: "single",
-        required: !0,
-        options: ["Urbain", "Périurbain", "Rural"]
-      }), t({
-        label: "Taille du ménage (nombre de personnes)",
-        type: "number",
-        required: !0,
-        min: 1,
-        max: 60
-      });
-      const n = t({
-        label: "Principal combustible de cuisson",
-        type: "single",
-        required: !0,
-        options: j
-      });
-      t({
-        label: "Tous les combustibles utilisés",
-        type: "multi",
-        options: j
-      });
-      const s = t({
-        label: "Mode d'approvisionnement en bois",
-        type: "single",
-        options: ["Ramassage", "Achat", "Les deux"],
-        showIf: {
-          q: n.id,
-          op: "eq",
-          value: "Bois de chauffe"
-        }
-      });
-      return t({
-        label: "Distance jusqu’au lieu de ramassage (km)",
-        type: "number",
-        min: 0,
-        max: 50,
-        showIf: {
-          q: s.id,
-          op: "neq",
-          value: "Achat"
-        }
-      }), t({
-        label: "Dépense mensuelle en combustibles (FCFA)",
-        type: "number",
-        min: 0,
-        max: 5e5
-      }), t({
-        label: "Type de foyer utilisé",
-        type: "single",
-        options: ["Foyer traditionnel (3 pierres)", "Foyer amélioré", "Réchaud à gaz", "Autre"]
-      }), t({
-        label: "Constatez-vous une raréfaction du bois ces 5 dernières années ?",
-        type: "yesno"
-      }), t({
-        label: "Satisfaction quant à l'accès à l'énergie",
-        type: "rating",
-        hint: "1 = pas du tout satisfait, 5 = très satisfait"
-      }), t({
-        label: "Observations",
-        type: "long"
-      }), {
-        title: "Enquête ménages – bois-énergie (région de Thiès)",
-        description: "Usages, approvisionnement et dépenses en combustibles domestiques des ménages.",
-        discipline: "Environnement / énergie",
-        region: "Thiès",
-        questions: e,
-        settings: {
-          askEnumerator: !0
-        }
-      }
-    }());
+    i("#newF").onclick = () => t({});
     const {
       data: n,
       error: a
