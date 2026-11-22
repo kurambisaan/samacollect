@@ -373,7 +373,7 @@ const P = [
     await (s?.auth.signOut()), location.hash = "#/"
   }],
   [/^#\/formulaires$/, F(async function(e) {
-    o.innerHTML = '<div class="row" style="margin-bottom:14px"><h1 style="margin:0">Mes formulaires</h1><span class="sp"></span>\n    <button class="p" id="newF">+ Nouveau</button><button id="tplF">Modèle bois-énergie</button></div><div id="list"><div class="empty">Chargement…</div></div>';
+    o.innerHTML = '<div class="row" style="margin-bottom:14px"><h1 style="margin:0">Mes formulaires</h1><span class="sp"></span>\n    <button class="p" id="newF">+ Nouveau</button><button id="tplF" hidden>Modèle bois-énergie</button></div><div id="list"><div class="empty">Chargement…</div></div>';
     const t = async e => {
       const t = D().user_metadata?.full_name || "",
         n = {
@@ -488,7 +488,7 @@ const P = [
     });
     if (!e()) return;
     if (a) return void(i("#list").innerHTML = `<div class="card empty">${l($(a))}</div>`);
-    if (!n.length) return void(i("#list").innerHTML = '<div class="card empty">Tu n’as pas encore de formulaire.<br>Crée-en un, ou pars du modèle d’enquête bois-énergie.</div>');
+    if (!n.length) return void(i("#list").innerHTML = '<div class="card empty">Tu n’as pas encore de formulaire.<br>Crée-en un.</div>');
     i("#list").innerHTML = n.map(e => `<div class="card"><div class="row">\n      <div style="flex:1;min-width:200px"><b>${l(e.title)}</b> <span class="chip ${U[e.status][1]}">${U[e.status][0]}</span>${e.open_data?' <span class="chip">Données ouvertes</span>':""}\n      <div class="muted">${e.questions.length} questions · modifié le ${u(e.updated_at)}</div></div>\n      <a class="btn" href="#/editer/${e.id}">Modifier</a>\n      <a class="btn p" href="#/resultats/${e.id}">Résultats</a>\n      <a class="btn" href="#/resultats/${e.id}/partager">Partager</a>\n      <button class="g d" data-del="${e.id}" title="Supprimer">✕</button></div></div>`).join(""), r("[data-del]").forEach(e => e.onclick = async () => {
       const t = n.find(t => t.id === e.dataset.del);
       if (!await f(`Supprimer « ${t.title} » et toutes ses réponses ? Action définitive.`, "Supprimer")) return;
